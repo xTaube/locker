@@ -1,0 +1,8 @@
+#ifndef LOCKER_VERSION_H
+#define LOCKER_VERSION_H
+
+#define VERSION_MAX_LEN 15
+#define CURRENT_VERSION "0.1.0"
+#define CURRENT_VERSION_LEN 5
+
+#endif
