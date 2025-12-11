@@ -47,7 +47,7 @@ void write_locker_file(const char locker_name[static 1],
   fclose(f);
 }
 
-locker_result_t create_locker(const char *restrict locker_name,
+locker_result_t locker_create(const char *restrict locker_name,
                               const char *restrict passphrase) {
   locker_header_t header = {0};
   memcpy(header.version, CURRENT_VERSION, CURRENT_VERSION_LEN);
@@ -88,7 +88,7 @@ locker_result_t create_locker(const char *restrict locker_name,
   initdb(db);
 
   unsigned char *serialized_db;
-  long long db_size = dump_db(db, &serialized_db);
+  long long db_size = db_dump(db, &serialized_db);
 
   if (db_size < 0) {
     log_message("Negative database size. WTF");
@@ -223,7 +223,7 @@ int lockers_list(char ***lockers) {
 }
 
 ATTR_NODISCARD ATTR_ALLOC locker_t *
-open_locker(const char locker_name[static 1], const char passphrase[static 1]) {
+locker_open(const char locker_name[static 1], const char passphrase[static 1]) {
   const char *filename = generate_locker_filename(locker_name);
   FILE *f = fopen(filename, "rb");
   if (!f) {
@@ -300,9 +300,9 @@ open_locker(const char locker_name[static 1], const char passphrase[static 1]) {
   return locker;
 }
 
-void save_and_close_locker(locker_t *locker) {
+locker_result_t save_and_close_locker(locker_t *locker) {
   unsigned char *serialized_db;
-  sqlite3_int64 db_size = dump_db(locker->_db, &serialized_db);
+  sqlite3_int64 db_size = db_dump(locker->_db, &serialized_db);
 
   if (db_size < 0) {
     log_message("Negative database size. WTF");
@@ -325,4 +325,54 @@ void save_and_close_locker(locker_t *locker) {
   db_close(locker->_db);
   free(locker);
   free(encrypted_db);
+
+  return LOCKER_OK;
+}
+
+locker_result_t locker_add_item(locker_t *locker, const char key[static 1],
+                                const char description[static 1], const char content[static 1],
+                                locker_item_type_t type) {
+  if (strlen(key) > LOCKER_ITEM_KEY_MAX_LEN) {
+    return LOCKER_ITEM_KEY_TOO_LONG;
+  }
+
+  if (db_item_key_exists(locker->_db, key)) {
+    return LOCKER_ITEM_KEY_EXISTS;
+  }
+
+  if (strlen(description) > LOCKER_ITEM_DESCRIPTION_MAX_LEN) {
+    return LOCKER_ITEM_DESCRIPTION_TOO_LONG;
+  }
+
+  if (strlen(content) > LOCKER_ITEM_CONTENT_MAX_LEN) {
+    return LOCKER_CONTENT_TOO_LONG;
+  }
+
+  db_add_item(locker->_db, key, description, (int)strlen(content),
+              (const unsigned char *)content, type);
+
+  return LOCKER_OK;
+}
+
+locker_result_t locker_add_account(locker_t *locker, const char key[static 1], const char description[static 1], const char username[static 1], const char password[static 1]) {
+    char *content = malloc(strlen(username)+strlen(password)+4);
+    sprintf(content, "[%s][%s]", username, password);
+
+    int rc = locker_add_item(locker, key, description, content, LOCKER_ITEM_ACCOUNT);
+
+    free(content);
+    return rc;
+}
+
+long long locker_get_items(locker_t *locker, locker_item_t **items) {
+  return db_list_items(locker->_db, items);
+}
+
+void free_locker_items_list(locker_item_t *items, long long n_items) {
+  for (long long i = 0; i < n_items; i++) {
+    free(items[i].key);
+    free(items[i].description);
+    free(items[i].content);
+  }
+  free(items);
 }
