@@ -10,6 +10,12 @@
 #define MAX(A,B) ((A)>(B)?(A):(B))
 
 #define TAB_LEN 4
+#define PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET 4
+#define PRINTW_DEFAULT_X_OFFSET 2
+#define BACKSPACE_KEY 127
+#define ENTER_KEY '\n'
+#define CTRL_X_KEY 24
+#define RETURN_OPTION -1
 
 typedef enum {
   VIEW_STARTUP,
@@ -71,13 +77,13 @@ void get_user_str(size_t buffer_sz, char buffer[buffer_sz], int win_y,
       if (cursor < len)
         cursor++;
       break;
-    case 24:
+    case CTRL_X_KEY:
       move(controls_y, controls_x);
       clrtoeol();
       return;
-    case '\n':
+    case ENTER_KEY:
       break;
-    case 127:
+    case BACKSPACE_KEY:
       if (cursor <= 0) {
         break;
       }
@@ -120,7 +126,7 @@ int choice_selector(int n_choices, const char *choices[],
     for (int i = 0; i < n_choices; i++) {
       if (i == highlight)
         attron(A_STANDOUT);
-      mvprintw(row_offset + i + 1, 2, "%u. %s", i + 1, choices[i]);
+      mvprintw(row_offset + i + 1, PRINTW_DEFAULT_X_OFFSET, "%u. %s", i + 1, choices[i]);
       if (i == highlight)
         attroff(A_STANDOUT);
     }
@@ -138,9 +144,9 @@ int choice_selector(int n_choices, const char *choices[],
       if (highlight >= n_choices)
         highlight = 0;
       break;
-    case 127:
-      return -1;
-    case '\n':
+    case BACKSPACE_KEY:
+      return RETURN_OPTION;
+    case ENTER_KEY:
       return highlight;
     }
   }
@@ -150,7 +156,7 @@ void startup_view(context_t *ctx) {
   clear();
 
   attron(A_BOLD);
-  mvprintw(1, 2, "Locker.");
+  mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Locker.");
   attroff(A_BOLD);
 
   const char *choices[] = {
@@ -161,7 +167,7 @@ void startup_view(context_t *ctx) {
   int option = choice_selector(sizeof(choices) / sizeof(char *), choices, 1);
 
   switch (option) {
-  case -1:
+  case RETURN_OPTION:
     ctx->view = VIEW_STARTUP;
     break;
   case 0:
@@ -176,7 +182,7 @@ void startup_view(context_t *ctx) {
 void locker_list_view(context_t *ctx) {
   clear();
   attron(A_BOLD);
-  mvprintw(1, 2, "Lockers list.");
+  mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Lockers list.");
   attroff(A_BOLD);
 
   char **lockers;
@@ -189,7 +195,7 @@ void locker_list_view(context_t *ctx) {
   }
 
   const char *control_options[] = {"BACKSPACE: Return"};
-  print_control_panel(sizeof(control_options)/sizeof(char*), control_options, n_lockers+4, 2);
+  print_control_panel(sizeof(control_options)/sizeof(char*), control_options, n_lockers+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET, PRINTW_DEFAULT_X_OFFSET);
 
   int locker = choice_selector(n_lockers, (const char **)lockers, 1);
   if (locker < 0) {
@@ -213,7 +219,7 @@ void locker_list_view(context_t *ctx) {
     return;
   }
 
-  mvprintw(3, 2, "Something went wrong. Check logs for more information.");
+  mvprintw(3, PRINTW_DEFAULT_X_OFFSET, "Something went wrong. Check logs for more information.");
   getch();
   ctx->view = VIEW_LOCKER_LIST;
 }
@@ -222,7 +228,7 @@ void new_locker_view(context_t *ctx) {
   clear();
 
   attron(A_BOLD);
-  mvprintw(1, 2, "No locker found, please create new locker.");
+  mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "No locker found, please create new locker.");
   attroff(A_BOLD);
 
   // const char *control_options[] = {"BACKSPACE: Return"};
@@ -231,7 +237,7 @@ void new_locker_view(context_t *ctx) {
 
   char locker_name[LOCKER_NAME_MAX_LEN + 2];
   do {
-    mvprintw(2, 2, "Enter locker name: ");
+    mvprintw(2, PRINTW_DEFAULT_X_OFFSET, "Enter locker name: ");
     clrtoeol();
     refresh();
 
@@ -239,11 +245,11 @@ void new_locker_view(context_t *ctx) {
     getnstr(locker_name, sizeof(locker_name) - 1);
 
     if (strlen(locker_name) > LOCKER_NAME_MAX_LEN) {
-      mvprintw(3, 2, "Locker name too long! Maxiumum length is %u",
+      mvprintw(3, PRINTW_DEFAULT_X_OFFSET, "Locker name too long! Maxiumum length is %u",
                LOCKER_NAME_MAX_LEN);
       refresh();
     } else if (strlen(locker_name) < 1) {
-      mvprintw(3, 2, "Locker name cannot be empty.");
+      mvprintw(3, PRINTW_DEFAULT_X_OFFSET, "Locker name cannot be empty.");
       refresh();
     } else
       break;
@@ -254,28 +260,28 @@ void new_locker_view(context_t *ctx) {
   char passphrase1[LOCKER_PASSPHRASE_MAX_LEN + 2];
   char passphrase2[LOCKER_PASSPHRASE_MAX_LEN + 2];
   do {
-    mvprintw(3, 2, "Enter passphrase: ");
+    mvprintw(3, PRINTW_DEFAULT_X_OFFSET, "Enter passphrase: ");
     clrtoeol();
     refresh();
     getnstr(passphrase1, sizeof(passphrase1) - 1);
     if (strlen(passphrase1) > LOCKER_PASSPHRASE_MAX_LEN) {
-      mvprintw(4, 2, "Passphrase too long! Maxiumum length is %u",
+      mvprintw(4, PRINTW_DEFAULT_X_OFFSET, "Passphrase too long! Maxiumum length is %u",
                LOCKER_PASSPHRASE_MAX_LEN);
       clrtoeol();
       refresh();
     } else if (strlen(passphrase1) < 1) {
-      mvprintw(4, 2, "Passphrase cannot be empty.");
+      mvprintw(4, PRINTW_DEFAULT_X_OFFSET, "Passphrase cannot be empty.");
       clrtoeol();
       refresh();
     } else {
-      mvprintw(4, 2, "Repeat passphrase: ");
+      mvprintw(4, PRINTW_DEFAULT_X_OFFSET, "Repeat passphrase: ");
       clrtoeol();
       refresh();
       getnstr(passphrase2, sizeof(passphrase2) - 1);
       if (strcmp(passphrase1, passphrase2) == 0)
         break;
       else {
-        mvprintw(5, 2, "Passphrases do not match!");
+        mvprintw(5, PRINTW_DEFAULT_X_OFFSET, "Passphrases do not match!");
         clrtoeol();
         refresh();
       }
@@ -289,16 +295,16 @@ void new_locker_view(context_t *ctx) {
     ctx->view = VIEW_LOCKER_LIST;
     return;
   case LOCKER_NAME_FORBIDDEN_CHAR:
-    mvprintw(5, 2, "Locker name can only contain alphanumeric characers.");
+    mvprintw(5, PRINTW_DEFAULT_X_OFFSET, "Locker name can only contain alphanumeric characers.");
     clrtoeol();
     break;
   default:
-    mvprintw(5, 2,
+    mvprintw(5, PRINTW_DEFAULT_X_OFFSET,
              "Something went wrong. Check log file for more information.");
     clrtoeol();
     break;
   }
-  mvprintw(6, 2, "Press key to continue ...");
+  mvprintw(6, PRINTW_DEFAULT_X_OFFSET, "Press key to continue ...");
   clrtoeol();
   refresh();
   getch();
@@ -313,7 +319,7 @@ void locker_view(context_t *ctx) {
   clear();
 
   attron(A_BOLD);
-  mvprintw(1, 2, "%s", ctx->locker->locker_name);
+  mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "%s", ctx->locker->locker_name);
   attroff(A_BOLD);
 
   const char *choices[] = {
@@ -325,7 +331,7 @@ void locker_view(context_t *ctx) {
 
   const char *control_options[] = {"BACKSPACE: Return"};
 
-  print_control_panel(sizeof(control_options)/sizeof(char*), control_options, n_choices+4, 2);
+  print_control_panel(sizeof(control_options)/sizeof(char*), control_options, n_choices+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET, PRINTW_DEFAULT_X_OFFSET);
   int option = choice_selector(sizeof(choices) / sizeof(char *), choices, 1);
 
   switch (option) {
@@ -336,7 +342,7 @@ void locker_view(context_t *ctx) {
     ctx->view = VIEW_ADD_ITEM;
     break;
 
-  case -1:
+  case RETURN_OPTION:
   case 2:
     save_and_close_locker(ctx->locker);
     ctx->locker = NULL;
@@ -350,7 +356,7 @@ void add_apikey_view(context_t *ctx) {
   clear();
 
   attron(A_BOLD);
-  mvprintw(1, 2, "Add Item.");
+  mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Add Item.");
   attroff(A_BOLD);
 
   char *rows[] = {
@@ -386,12 +392,12 @@ void add_apikey_view(context_t *ctx) {
         for (int i = 0; i < n_rows; i++) {
         if (i == highlight)
             attron(A_STANDOUT);
-        mvprintw(i + 2, 2, "%s %s", rows[i], rows_content[i]);
+        mvprintw(i + 2, PRINTW_DEFAULT_X_OFFSET, "%s %s", rows[i], rows_content[i]);
         if (i == highlight)
             attroff(A_STANDOUT);
         }
 
-        print_control_panel(sizeof(control_options)/sizeof(char *), control_options, 7, 2);
+        print_control_panel(sizeof(control_options)/sizeof(char *), control_options, PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET+3, PRINTW_DEFAULT_X_OFFSET);
         refresh();
 
         int ch = getch();
@@ -406,35 +412,35 @@ void add_apikey_view(context_t *ctx) {
         if (highlight >= n_rows)
             highlight = 0;
         break;
-        case 24:
+        case CTRL_X_KEY:
             if(strlen(rows_content[0])<1) {
-                mvprintw(6, 2, "Item key is missing.");
+                mvprintw(6, PRINTW_DEFAULT_X_OFFSET, "Item key is missing.");
                 clrtoeol();
                 break;
             }
             if(strlen(rows_content[2])<1) {
-                mvprintw(6, 2, "API Key is missing.");
+                mvprintw(6, PRINTW_DEFAULT_X_OFFSET, "API Key is missing.");
                 clrtoeol();
                 break;
             }
             save = true;
             break;
-        case 127:
+        case BACKSPACE_KEY:
         free(rows_content[0]);
         free(rows_content[1]);
         free(rows_content[2]);
         ctx->view = VIEW_LOCKER;
         return;
-        case '\n':
+        case ENTER_KEY:
         get_user_str(rows_max[highlight], rows_content[highlight], highlight + 2,
-                    strlen(rows[highlight]) + 3, n_rows + 4, 2);
+                    strlen(rows[highlight]) + 3, n_rows + 4, PRINTW_DEFAULT_X_OFFSET);
         break;
         }
   }
 
   rc = locker_add_item(ctx->locker, rows_content[0], rows_content[1], rows_content[2], LOCKER_ITEM_APIKEY);
   if (rc == LOCKER_ITEM_KEY_EXISTS) {
-      mvprintw(5, 2, "Given key already exisit in Locker.");
+      mvprintw(5, PRINTW_DEFAULT_X_OFFSET, "Given key already exisit in Locker.");
       clrtoeol();
   }
 
@@ -451,7 +457,7 @@ void add_item_view(context_t *ctx) {
     clear();
 
     attron(A_BOLD);
-    mvprintw(1, 2, "Choose item type.");
+    mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Choose item type.");
     attroff(A_BOLD);
 
     const char *choices[] = {
@@ -462,11 +468,11 @@ void add_item_view(context_t *ctx) {
 
     const char *control_options[] = {"BACKSPACE: Return"};
 
-    print_control_panel(sizeof(control_options)/sizeof(char*), control_options, n_choices+4, 2);
+    print_control_panel(sizeof(control_options)/sizeof(char*), control_options, n_choices+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET, PRINTW_DEFAULT_X_OFFSET);
     int choice = choice_selector(n_choices, choices, 1);
 
     switch(choice) {
-        case -1:
+        case RETURN_OPTION:
             ctx->view = VIEW_LOCKER;
             break;
         case 0:
@@ -491,7 +497,7 @@ const char *get_item_type_str(locker_item_type_t type) {
 void view_item(locker_item_t item) {
     clear();
 
-    size_t x_offset = 2;
+    size_t x_offset = PRINTW_DEFAULT_X_OFFSET;
 
     attron(A_BOLD);
     mvprintw(1, x_offset, "Key");
@@ -524,12 +530,12 @@ void view_item(locker_item_t item) {
 
     const char *control_options[] = {"BACKSPACE: Return"};
 
-    print_control_panel(sizeof(control_options)/sizeof(char *), control_options, 5, 2);
+    print_control_panel(sizeof(control_options)/sizeof(char *), control_options, PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET+1, PRINTW_DEFAULT_X_OFFSET);
     refresh();
 
     while(1) {
         int ch = getch();
-        if(ch == 127) break;
+        if(ch == BACKSPACE_KEY) break;
     }
 }
 
@@ -537,14 +543,14 @@ void item_list_view(context_t *ctx) {
     clear();
 
     attron(A_BOLD);
-    mvprintw(1, 2, "Items.");
+    mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Items.");
     attroff(A_BOLD);
 
     locker_item_t *items;
     long long n_items = locker_get_items(ctx->locker, &items);
 
     const char *control_options[] = {"BACKSPACE: Return"};
-    print_control_panel(sizeof(control_options)/sizeof(char *), control_options, n_items+4, 2);
+    print_control_panel(sizeof(control_options)/sizeof(char *), control_options, n_items+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET, PRINTW_DEFAULT_X_OFFSET);
 
     char **choices = malloc(n_items*sizeof(char*));
     for(long long i = 0; i<n_items; i++) {
@@ -554,7 +560,7 @@ void item_list_view(context_t *ctx) {
     int option = choice_selector(n_items, (const char **)choices, 1);
 
     switch(option) {
-        case -1:
+        case RETURN_OPTION:
             ctx->view = VIEW_LOCKER;
             break;
         default:
