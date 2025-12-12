@@ -19,7 +19,7 @@ void turn_on_user_typing();
 
 void print_control_panel(size_t n_options, const char *options[], int y_offset, int x_offset, int tab_len);
 
-void get_user_str(size_t buffer_sz, char buffer[buffer_sz], int win_y, int win_x, int controls_y, int controls_x);
+void get_user_str(size_t buffer_sz, char buffer[buffer_sz], int win_y, int win_x, int controls_y, int controls_x, bool typing, bool show_cursor, int attrs);
 
 int choice_selector(int n_choices, const char *choices[], int row_offset);
 

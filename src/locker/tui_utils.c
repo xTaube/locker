@@ -1,3 +1,4 @@
+#include <curses.h>
 #include <string.h>
 #include <ncurses.h>
 #include "locker_tui_utils.h"
@@ -27,13 +28,18 @@ void print_control_panel(size_t n_options, const char *options[], int y_offset, 
 }
 
 void get_user_str(size_t buffer_sz, char buffer[buffer_sz], int win_y,
-                  int win_x, int controls_y, int controls_x) {
+                  int win_x, int controls_y, int controls_x, bool typing, bool show_cursor, int attrs) {
 
   const char *control_options[] = {"CTRL-X: Save"};
   print_control_panel(sizeof(control_options)/sizeof(char *), control_options, controls_y, controls_x, TAB_LEN);
 
   size_t len = strlen(buffer);
   size_t cursor = len;
+
+  if(show_cursor)
+      curs_set(1);
+
+  attron(attrs);
 
   while (1) {
     move(win_y, win_x + cursor);
@@ -50,7 +56,13 @@ void get_user_str(size_t buffer_sz, char buffer[buffer_sz], int win_y,
     case CTRL_X_KEY:
       move(controls_y, controls_x);
       clrtoeol();
+      attroff(attrs);
+
+      if(show_cursor)
+        curs_set(0);
       return;
+    case KEY_UP:
+    case KEY_DOWN:
     case ENTER_KEY:
       break;
     case BACKSPACE_KEY:
@@ -83,7 +95,9 @@ void get_user_str(size_t buffer_sz, char buffer[buffer_sz], int win_y,
       break;
     }
 
-    mvprintw(win_y, win_x, buffer);
+    if(typing)
+        mvprintw(win_y, win_x, buffer);
+
     clrtoeol();
     refresh();
   }

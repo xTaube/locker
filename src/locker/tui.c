@@ -104,83 +104,125 @@ void new_locker_view(context_t *ctx) {
   mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "No locker found, please create new locker.");
   attroff(A_BOLD);
 
-  // const char *control_options[] = {"BACKSPACE: Return"};
-  // print_control_panel(sizeof(control_options)/sizeof(char*), control_options, 5, 2);
-  // not yet implemented
+  const char *rows[] = {
+      "Name:",
+      "Passphrase:",
+      "Repeat passphrase:"
+  };
+  int n_rows = sizeof(rows)/sizeof(char*);
 
-  char locker_name[LOCKER_NAME_MAX_LEN + 2];
-  do {
-    mvprintw(2, PRINTW_DEFAULT_X_OFFSET, "Enter locker name: ");
-    clrtoeol();
-    refresh();
+  const unsigned int rows_max_len[] = {
+      LOCKER_NAME_MAX_LEN, LOCKER_PASSPHRASE_MAX_LEN, LOCKER_PASSPHRASE_MAX_LEN,
+  };
 
-    turn_on_user_typing();
-    getnstr(locker_name, sizeof(locker_name) - 1);
-
-    if (strlen(locker_name) > LOCKER_NAME_MAX_LEN) {
-      mvprintw(3, PRINTW_DEFAULT_X_OFFSET, "Locker name too long! Maxiumum length is %u",
-               LOCKER_NAME_MAX_LEN);
-      refresh();
-    } else if (strlen(locker_name) < 1) {
-      mvprintw(3, PRINTW_DEFAULT_X_OFFSET, "Locker name cannot be empty.");
-      refresh();
-    } else
-      break;
-  } while (1);
-
-  turn_off_user_typing();
-
-  char passphrase1[LOCKER_PASSPHRASE_MAX_LEN + 2];
-  char passphrase2[LOCKER_PASSPHRASE_MAX_LEN + 2];
-  do {
-    mvprintw(3, PRINTW_DEFAULT_X_OFFSET, "Enter passphrase: ");
-    clrtoeol();
-    refresh();
-    getnstr(passphrase1, sizeof(passphrase1) - 1);
-    if (strlen(passphrase1) > LOCKER_PASSPHRASE_MAX_LEN) {
-      mvprintw(4, PRINTW_DEFAULT_X_OFFSET, "Passphrase too long! Maxiumum length is %u",
-               LOCKER_PASSPHRASE_MAX_LEN);
-      clrtoeol();
-      refresh();
-    } else if (strlen(passphrase1) < 1) {
-      mvprintw(4, PRINTW_DEFAULT_X_OFFSET, "Passphrase cannot be empty.");
-      clrtoeol();
-      refresh();
-    } else {
-      mvprintw(4, PRINTW_DEFAULT_X_OFFSET, "Repeat passphrase: ");
-      clrtoeol();
-      refresh();
-      getnstr(passphrase2, sizeof(passphrase2) - 1);
-      if (strcmp(passphrase1, passphrase2) == 0)
-        break;
-      else {
-        mvprintw(5, PRINTW_DEFAULT_X_OFFSET, "Passphrases do not match!");
-        clrtoeol();
-        refresh();
-      }
-    }
-  } while (1);
-
-  locker_result_t rc = locker_create(locker_name, passphrase1);
-
-  switch (rc) {
-  case LOCKER_OK:
-    ctx->view = VIEW_LOCKER_LIST;
-    return;
-  case LOCKER_NAME_FORBIDDEN_CHAR:
-    mvprintw(5, PRINTW_DEFAULT_X_OFFSET, "Locker name can only contain alphanumeric characers.");
-    clrtoeol();
-    break;
-  default:
-    mvprintw(5, PRINTW_DEFAULT_X_OFFSET,
-             "Something went wrong. Check log file for more information.");
-    clrtoeol();
-    break;
+  char **rows_content = malloc(sizeof(char*)*n_rows);
+  if(!rows_content) {
+      perror("malloc.");
+      exit(EXIT_FAILURE);
   }
-  mvprintw(6, PRINTW_DEFAULT_X_OFFSET, "Press key to continue ...");
-  clrtoeol();
-  refresh();
-  getch();
+
+  rows_content[0] = calloc(LOCKER_NAME_MAX_LEN+1, sizeof(char));
+  rows_content[1] = calloc(LOCKER_PASSPHRASE_MAX_LEN+2, sizeof(char));
+  rows_content[2] = calloc(LOCKER_PASSPHRASE_MAX_LEN+2, sizeof(char));
+
+  if(!rows_content[0] || !rows_content[1] || !rows_content[2]) {
+      perror("calloc");
+      exit(EXIT_FAILURE);
+  }
+
+
+  const char *control_options[] = {"CTRL-X: Add", "BACKSPACE: Return"};
+
+  int rc = 0;
+  do {
+    bool save = false;
+    int highlight = 0;
+    while (!save) {
+        for (int i = 0; i < n_rows; i++) {
+        if (i == highlight)
+            attron(A_STANDOUT);
+        if (i > 0)
+            mvprintw(i + 2, PRINTW_DEFAULT_X_OFFSET, rows[i]);
+        else
+            mvprintw(i + 2, PRINTW_DEFAULT_X_OFFSET, "%s %s", rows[i], rows_content[i]);
+        if (i == highlight)
+            attroff(A_STANDOUT);
+        }
+
+        print_control_panel(sizeof(control_options)/sizeof(char *), control_options, PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET+n_rows, PRINTW_DEFAULT_X_OFFSET, TAB_LEN);
+        refresh();
+
+        bool typing = true;
+        bool show_cursor = true;
+
+        int ch = getch();
+        switch (ch) {
+        case KEY_UP:
+            if (highlight == 0)
+                highlight = n_rows;
+            highlight--;
+            break;
+        case KEY_DOWN:
+            highlight++;
+            if (highlight >= n_rows)
+                highlight = 0;
+            break;
+        case CTRL_X_KEY:
+            if(strlen(rows_content[0])<1) {
+                mvprintw(n_rows+3, PRINTW_DEFAULT_X_OFFSET, "Locker name cannot be empty.");
+                clrtoeol();
+                break;
+            }
+            if(strlen(rows_content[1])<1) {
+                mvprintw(n_rows+3, PRINTW_DEFAULT_X_OFFSET, "Passphrase cannot be empty.");
+                clrtoeol();
+                break;
+            }
+            if (strcmp(rows_content[1], rows_content[2]) == 0)
+                save = true;
+            else {
+              mvprintw(n_rows+3, PRINTW_DEFAULT_X_OFFSET, "Passphrases do not match!");
+              clrtoeol();
+            }
+            break;
+        case BACKSPACE_KEY:
+            free(rows_content[0]);
+            free(rows_content[1]);
+            free(rows_content[2]);
+            ctx->view = VIEW_STARTUP;
+            return;
+        case ENTER_KEY:
+            if(highlight>0){
+                typing = false;
+                show_cursor = false;
+            } else {
+                typing = true;
+                show_cursor = true;
+            }
+
+            get_user_str(rows_max_len[highlight], rows_content[highlight], highlight + 2,
+                        strlen(rows[highlight]) + 3, n_rows + 4, PRINTW_DEFAULT_X_OFFSET, typing, show_cursor, A_STANDOUT);
+            break;
+        }
+  }
+
+    locker_result_t rc = locker_create(rows_content[0], rows_content[1]);
+
+    if(rc == LOCKER_NAME_FORBIDDEN_CHAR) {
+        mvprintw(n_rows+3, PRINTW_DEFAULT_X_OFFSET, "Locker name can only contain alphanumeric characers.");
+        clrtoeol();
+    } else if(rc != LOCKER_OK) {
+        mvprintw(n_rows+3, PRINTW_DEFAULT_X_OFFSET, "Something went wrong. Check log file for more information.");
+        clrtoeol();
+    }
+
+  } while(rc != LOCKER_OK);
+
+
+  free(rows_content[0]);
+  free(rows_content[1]);
+  free(rows_content[2]);
+  ctx->view = VIEW_LOCKER;
 }
 
 void locker_view(context_t *ctx) {
@@ -237,7 +279,7 @@ void add_apikey_view(context_t *ctx) {
       "Description:",
       "API Key:",
   };
-  unsigned int rows_max[] = {LOCKER_ITEM_KEY_MAX_LEN,
+  unsigned int rows_max_len[] = {LOCKER_ITEM_KEY_MAX_LEN,
                              LOCKER_ITEM_DESCRIPTION_MAX_LEN, LOCKER_ITEM_CONTENT_MAX_LEN};
   int n_rows = sizeof(rows) / sizeof(char *);
 
@@ -305,8 +347,8 @@ void add_apikey_view(context_t *ctx) {
         ctx->view = VIEW_LOCKER;
         return;
         case ENTER_KEY:
-        get_user_str(rows_max[highlight], rows_content[highlight], highlight + 2,
-                    strlen(rows[highlight]) + 3, n_rows + 4, PRINTW_DEFAULT_X_OFFSET);
+        get_user_str(rows_max_len[highlight], rows_content[highlight], highlight + 2,
+                    strlen(rows[highlight]) + 3, n_rows + 4, PRINTW_DEFAULT_X_OFFSET, true, true, A_STANDOUT);
         break;
         }
   }
@@ -396,7 +438,7 @@ void view_item(locker_item_t item) {
     x_offset += MAX(strlen(type), strlen("Type"))+TAB_LEN;
 
     attron(A_BOLD);
-    mvprintw(1, x_offset, "Secret");
+    mvprintw(1, x_offset, "Value");
     attroff(A_BOLD);
 
     mvaddnstr(2, x_offset, (const char *)item.content, item.content_size);
@@ -450,6 +492,7 @@ int run() {
   initscr();
   turn_off_user_typing();
   keypad(stdscr, true);
+  curs_set(0);
 
   bool running = true;
   while (running) {
@@ -478,6 +521,7 @@ int run() {
     }
   }
 
+  curs_set(1);
   endwin();
   return 0;
 }
