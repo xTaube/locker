@@ -92,7 +92,7 @@ void get_user_str(size_t buffer_sz, char buffer[buffer_sz], int win_y,
       }
       break;
     default:
-      if (len >= buffer_sz || !isalnum((unsigned char)ch)) {
+      if (len >= buffer_sz) {
         break;
       }
 
@@ -149,12 +149,16 @@ int choice_selector(int n_choices, const char *choices[],
 void startup_view(context_t *ctx) {
   clear();
 
+  attron(A_BOLD);
+  mvprintw(1, 2, "Locker.");
+  attroff(A_BOLD);
+
   const char *choices[] = {
       "Enter locker",
       "Exit",
   };
 
-  int option = choice_selector(sizeof(choices) / sizeof(char *), choices, 0);
+  int option = choice_selector(sizeof(choices) / sizeof(char *), choices, 1);
 
   switch (option) {
   case -1:
