@@ -28,7 +28,7 @@ void startup_view(context_t *ctx) {
   clear();
 
   attron(A_BOLD);
-  mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Locker.");
+  mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Locker");
   attroff(A_BOLD);
 
   const char *choices[] = {
@@ -258,7 +258,7 @@ void locker_view(context_t *ctx) {
 
   case RETURN_OPTION:
   case 2:
-    save_and_close_locker(ctx->locker);
+    close_locker(ctx->locker);
     ctx->locker = NULL;
     ctx->view = VIEW_LOCKER_LIST;
     break;
@@ -395,6 +395,8 @@ void add_item_view(context_t *ctx) {
             add_apikey_view(ctx);
             break;
     }
+
+    save_locker(ctx->locker);
 }
 
 const char *get_item_type_str(locker_item_type_t type) {

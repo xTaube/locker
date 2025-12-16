@@ -68,7 +68,10 @@ int lockers_list(char ***lockers);
 ATTR_NODISCARD ATTR_ALLOC locker_t *
 locker_open(const char locker_name[static 1], const char passphrase[static 1]);
 
-locker_result_t save_and_close_locker(locker_t *locker);
+locker_result_t save_locker(locker_t *locker);
+
+locker_result_t close_locker(locker_t *locker);
+
 
 locker_result_t locker_add_item(locker_t *locker, const char key[static 1],
                                 const char description[static 1], const char content[static 1],

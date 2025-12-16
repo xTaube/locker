@@ -301,31 +301,36 @@ locker_open(const char locker_name[static 1], const char passphrase[static 1]) {
   return locker;
 }
 
-locker_result_t save_and_close_locker(locker_t *locker) {
-  unsigned char *serialized_db;
-  sqlite3_int64 db_size = db_dump(locker->_db, &serialized_db);
+locker_result_t save_locker(locker_t *locker) {
+    unsigned char *serialized_db;
+    sqlite3_int64 db_size = db_dump(locker->_db, &serialized_db);
 
-  if (db_size < 0) {
-    log_message("Negative database size. WTF");
-    exit(EXIT_FAILURE);
-  }
+    if (db_size < 0) {
+      log_message("Negative database size. WTF");
+      exit(EXIT_FAILURE);
+    }
 
-  generate_nonce(locker->_header->nonce);
+    generate_nonce(locker->_header->nonce);
 
-  unsigned char *encrypted_db =
-      malloc(sizeof(unsigned char) *
-             (db_size + crypto_aead_xchacha20poly1305_IETF_ABYTES));
+    unsigned char *encrypted_db =
+        malloc(sizeof(unsigned char) *
+               (db_size + crypto_aead_xchacha20poly1305_IETF_ABYTES));
 
-  crypto_aead_xchacha20poly1305_ietf_encrypt(
-      encrypted_db, &(locker->_header->locker_size), serialized_db, db_size,
-      NULL, 0, NULL, locker->_header->nonce, locker->_key);
+    crypto_aead_xchacha20poly1305_ietf_encrypt(
+        encrypted_db, &(locker->_header->locker_size), serialized_db, db_size,
+        NULL, 0, NULL, locker->_header->nonce, locker->_key);
 
-  write_locker_file(locker->locker_name, locker->_header, encrypted_db);
+    write_locker_file(locker->locker_name, locker->_header, encrypted_db);
 
-  sqlite3_free(serialized_db);
+    sqlite3_free(serialized_db);
+    free(encrypted_db);
+
+    return LOCKER_OK;
+}
+
+locker_result_t close_locker(locker_t *locker) {
   db_close(locker->_db);
   free(locker);
-  free(encrypted_db);
 
   return LOCKER_OK;
 }
