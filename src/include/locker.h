@@ -27,7 +27,7 @@ typedef enum {
 } locker_result_t;
 
 typedef struct {
-  char version[VERSION_MAX_LEN + 1];
+  unsigned int file_version;
   unsigned long magic;
   char locker_name[LOCKER_NAME_MAX_LEN + 1];
   unsigned char salt[LOCKER_CRYPTO_SALT_LEN];

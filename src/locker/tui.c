@@ -1,12 +1,11 @@
 #include "curses.h"
 #include "locker.h"
+#include "locker_tui_utils.h"
 #include "ncurses.h"
 #include <ctype.h>
-#include <ncurses.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "locker_tui_utils.h"
 
 #define MAX(A,B) ((A)>(B)?(A):(B))
 

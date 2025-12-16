@@ -2,6 +2,7 @@
 #include "locker_db.h"
 #include "locker_logs.h"
 #include "locker_stringutils.h"
+#include "locker_version.h"
 #include "sodium/crypto_aead_xchacha20poly1305.h"
 #include <dirent.h>
 #include <limits.h>
@@ -50,7 +51,7 @@ void write_locker_file(const char locker_name[static 1],
 locker_result_t locker_create(const char *restrict locker_name,
                               const char *restrict passphrase) {
   locker_header_t header = {0};
-  memcpy(header.version, CURRENT_VERSION, CURRENT_VERSION_LEN);
+  header.file_version = LOCKER_FILE_VERSION;
   header.magic = LOCKER_MAGIC;
 
   if (!str_alphnum(locker_name)) {
