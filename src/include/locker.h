@@ -14,6 +14,9 @@
 #define LOCKER_ITEM_KEY_MAX_LEN 2 << 9
 #define LOCKER_ITEM_DESCRIPTION_MAX_LEN 2 << 9
 #define LOCKER_ITEM_CONTENT_MAX_LEN 2 << 15
+#define LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN 512
+#define LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN 512
+#define LOCKER_ITEM_ACCOUNT_URL_MAX_LEN 512
 
 typedef enum {
   LOCKER_OK = 0,
@@ -24,6 +27,9 @@ typedef enum {
   LOCKER_ITEM_KEY_TOO_LONG,
   LOCKER_ITEM_DESCRIPTION_TOO_LONG,
   LOCKER_ITEM_KEY_EXISTS,
+  LOCKER_ITEM_ACCOUNT_USERNAME_TOO_LONG,
+  LOCKER_ITEM_ACCOUNT_PASSWORD_TOO_LONG,
+  LOCKER_ITEM_ACCOUNT_URL_TOO_LONG,
 } locker_result_t;
 
 typedef struct {
@@ -72,13 +78,15 @@ locker_result_t save_locker(locker_t *locker);
 
 locker_result_t close_locker(locker_t *locker);
 
-
 locker_result_t locker_add_item(locker_t *locker, const char key[static 1],
-                                const char description[static 1], const char content[static 1],
+                                const char description[static 1], const int content_size, const unsigned char content[content_size],
                                 locker_item_type_t type);
 
-locker_result_t locker_add_account(locker_t *locker, const char key[static 1], const char description[static 1], const char username[static 1], const char password[static 1]);
+
+locker_result_t locker_add_account(locker_t *locker, const char key[static 1], const char description[static 1], const char username[static 1], const char password[static 1], const char url[static 1]);
 
 long long locker_get_items(locker_t *locker, locker_item_t **items);
+
+void free_locker_items_list(long long n_items, locker_item_t items[n_items]);
 
 #endif

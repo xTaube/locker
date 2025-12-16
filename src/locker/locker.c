@@ -4,6 +4,7 @@
 #include "locker_stringutils.h"
 #include "locker_version.h"
 #include "sodium/crypto_aead_xchacha20poly1305.h"
+#include <complex.h>
 #include <dirent.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -336,7 +337,7 @@ locker_result_t close_locker(locker_t *locker) {
 }
 
 locker_result_t locker_add_item(locker_t *locker, const char key[static 1],
-                                const char description[static 1], const char content[static 1],
+                                const char description[static 1], const int content_size, const unsigned char content[content_size],
                                 locker_item_type_t type) {
   if (strlen(key) > LOCKER_ITEM_KEY_MAX_LEN) {
     return LOCKER_ITEM_KEY_TOO_LONG;
@@ -350,21 +351,37 @@ locker_result_t locker_add_item(locker_t *locker, const char key[static 1],
     return LOCKER_ITEM_DESCRIPTION_TOO_LONG;
   }
 
-  if (strlen(content) > LOCKER_ITEM_CONTENT_MAX_LEN) {
+  if (content_size > LOCKER_ITEM_CONTENT_MAX_LEN) {
     return LOCKER_CONTENT_TOO_LONG;
   }
 
-  db_add_item(locker->_db, key, description, (int)strlen(content),
-              (const unsigned char *)content, type);
+  db_add_item(locker->_db, key, description, content_size, content, type);
 
   return LOCKER_OK;
 }
 
-locker_result_t locker_add_account(locker_t *locker, const char key[static 1], const char description[static 1], const char username[static 1], const char password[static 1]) {
-    char *content = malloc(strlen(username)+strlen(password)+4);
-    sprintf(content, "[%s][%s]", username, password);
+locker_result_t locker_add_account(locker_t *locker, const char key[static 1], const char description[static 1], const char username[static 1], const char password[static 1], const char url[static 1]) {
+    if(strlen(username) > LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN) {
+        return LOCKER_ITEM_ACCOUNT_USERNAME_TOO_LONG;
+    }
+    if(strlen(password) > LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN) {
+        return LOCKER_ITEM_ACCOUNT_PASSWORD_TOO_LONG;
+    }
+    if(strlen(url) > LOCKER_ITEM_ACCOUNT_URL_MAX_LEN) {
+        return LOCKER_ITEM_ACCOUNT_URL_TOO_LONG;
+    }
 
-    int rc = locker_add_item(locker, key, description, content, LOCKER_ITEM_ACCOUNT);
+    char *content = calloc(LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN+LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN+ LOCKER_ITEM_ACCOUNT_URL_MAX_LEN, sizeof(char));
+    if(!content) {
+        perror("calloc");
+        exit(EXIT_FAILURE);
+    }
+
+    memcpy(content, username, strlen(username));
+    memcpy(content+LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN, password, strlen(password));
+    memcpy(content+LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN+LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN, url, strlen(url));
+
+    int rc = locker_add_item(locker, key, description, LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN+LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN+LOCKER_ITEM_ACCOUNT_URL_MAX_LEN, (const unsigned char *)content, LOCKER_ITEM_ACCOUNT);
 
     free(content);
     return rc;
@@ -374,7 +391,7 @@ long long locker_get_items(locker_t *locker, locker_item_t **items) {
   return db_list_items(locker->_db, items);
 }
 
-void free_locker_items_list(locker_item_t *items, long long n_items) {
+void free_locker_items_list(long long n_items, locker_item_t items[n_items]) {
   for (long long i = 0; i < n_items; i++) {
     free(items[i].key);
     free(items[i].description);

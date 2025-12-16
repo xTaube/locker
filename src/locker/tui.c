@@ -8,6 +8,7 @@
 #include <string.h>
 
 #define MAX(A,B) ((A)>(B)?(A):(B))
+#define MIN(A,B) ((A)<(B)?(A):(B))
 
 typedef enum {
   VIEW_STARTUP,
@@ -54,7 +55,7 @@ void startup_view(context_t *ctx) {
 void locker_list_view(context_t *ctx) {
   clear();
   attron(A_BOLD);
-  mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Lockers list.");
+  mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Lockers list");
   attroff(A_BOLD);
 
   char **lockers;
@@ -352,9 +353,10 @@ void add_apikey_view(context_t *ctx) {
         }
   }
 
-  rc = locker_add_item(ctx->locker, rows_content[0], rows_content[1], rows_content[2], LOCKER_ITEM_APIKEY);
+ /* content size is a type of int as INT_MAX is content max lenght so be sure to make its length to fit in that value (strlen returns size_t) */
+  rc = locker_add_item(ctx->locker, rows_content[0], rows_content[1],(int)strlen(rows_content[2]), (const unsigned char *)rows_content[2], LOCKER_ITEM_APIKEY);
   if (rc == LOCKER_ITEM_KEY_EXISTS) {
-      mvprintw(5, PRINTW_DEFAULT_X_OFFSET, "Given key already exisit in Locker.");
+      mvprintw(5, PRINTW_DEFAULT_X_OFFSET, "Given key already exisit in your Locker.");
       clrtoeol();
   }
 
@@ -367,11 +369,116 @@ void add_apikey_view(context_t *ctx) {
   ctx->view = VIEW_ITEM_LIST;
 }
 
+void add_account_view(context_t *ctx) {
+  clear();
+
+  attron(A_BOLD);
+  mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Add Item");
+  attroff(A_BOLD);
+
+  char *rows[] = {
+      "Key:",
+      "Description:",
+      "Username:",
+      "Password:",
+      "URL:",
+  };
+  unsigned int rows_max_len[] = {LOCKER_ITEM_KEY_MAX_LEN,
+                             LOCKER_ITEM_DESCRIPTION_MAX_LEN, LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN, LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN, LOCKER_ITEM_ACCOUNT_URL_MAX_LEN};
+  int n_rows = sizeof(rows) / sizeof(char *);
+
+  char **rows_content = malloc(sizeof(char *) * n_rows);
+  if (!rows_content) {
+    perror("malloc");
+    exit(EXIT_FAILURE);
+  }
+
+  rows_content[0] = calloc((LOCKER_ITEM_KEY_MAX_LEN) + 1, sizeof(char));
+  rows_content[1] = calloc((LOCKER_ITEM_DESCRIPTION_MAX_LEN) + 1, sizeof(char));
+  rows_content[2] = calloc((LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN)+1, sizeof(char));
+  rows_content[3] = calloc((LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN)+1, sizeof(char));
+  rows_content[4] = calloc((LOCKER_ITEM_ACCOUNT_URL_MAX_LEN)+1, sizeof(char));
+
+  if (!rows_content[0] || !rows_content[1] || !rows_content[2] || !rows_content[3] || !rows_content[4]) {
+    perror("calloc");
+    exit(EXIT_FAILURE);
+  }
+
+  const char *control_options[] = {"CTRL-X: Add", "BACKSPACE: Return"};
+
+  int rc = 0;
+  do {
+    bool save = false;
+    int highlight = 0;
+    while (!save) {
+        for (int i = 0; i < n_rows; i++) {
+        if (i == highlight)
+            attron(A_STANDOUT);
+        mvprintw(i + 2, PRINTW_DEFAULT_X_OFFSET, "%s %s", rows[i], rows_content[i]);
+        if (i == highlight)
+            attroff(A_STANDOUT);
+        }
+
+        print_control_panel(sizeof(control_options)/sizeof(char *), control_options, PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET+n_rows, PRINTW_DEFAULT_X_OFFSET, TAB_LEN);
+        refresh();
+
+        int ch = getch();
+        switch (ch) {
+        case KEY_UP:
+        if (highlight == 0)
+            highlight = n_rows;
+        highlight--;
+        break;
+        case KEY_DOWN:
+        highlight++;
+        if (highlight >= n_rows)
+            highlight = 0;
+        break;
+        case CTRL_X_KEY:
+            if(strlen(rows_content[0])<1) {
+                mvprintw(8, PRINTW_DEFAULT_X_OFFSET, "Item key is missing.");
+                clrtoeol();
+                break;
+            }
+            save = true;
+            break;
+        case BACKSPACE_KEY:
+            free(rows_content[0]);
+            free(rows_content[1]);
+            free(rows_content[2]);
+            free(rows_content[3]);
+            free(rows_content[4]);
+            ctx->view = VIEW_LOCKER;
+            return;
+        case ENTER_KEY:
+            get_user_str(rows_max_len[highlight], rows_content[highlight], highlight + 2,
+                        strlen(rows[highlight]) + 3, n_rows + 4, PRINTW_DEFAULT_X_OFFSET, true, true, A_STANDOUT);
+            break;
+        }
+  }
+
+  rc = locker_add_account(ctx->locker, rows_content[0], rows_content[1], rows_content[2], rows_content[3], rows_content[4]);
+  if (rc == LOCKER_ITEM_KEY_EXISTS) {
+      mvprintw(8, PRINTW_DEFAULT_X_OFFSET, "Given key already exisit in your Locker.");
+      clrtoeol();
+  }
+
+  } while(rc != LOCKER_OK);
+
+
+  free(rows_content[0]);
+  free(rows_content[1]);
+  free(rows_content[2]);
+  free(rows_content[3]);
+  free(rows_content[4]);
+  ctx->view = VIEW_ITEM_LIST;
+}
+
 void add_item_view(context_t *ctx) {
     clear();
 
     attron(A_BOLD);
-    mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Choose item type.");
+    mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Choose item type");
     attroff(A_BOLD);
 
     const char *choices[] = {
@@ -390,6 +497,7 @@ void add_item_view(context_t *ctx) {
             ctx->view = VIEW_LOCKER;
             break;
         case 0:
+            add_account_view(ctx);
             break;
         case 1:
             add_apikey_view(ctx);
@@ -404,10 +512,46 @@ const char *get_item_type_str(locker_item_type_t type) {
         case LOCKER_ITEM_APIKEY:
         return "API Key";
         case LOCKER_ITEM_ACCOUNT:
-        return "ACCOUNT";
+        return "Account";
         case LOCKER_ITEM_NOTE:
         return "Note";
     }
+}
+
+void print_item_account_content(int x_offset, const char *content) {
+    const char *username = content;
+    const char *password = content+LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN;
+    const char *url = content+LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN+LOCKER_ITEM_ACCOUNT_URL_MAX_LEN;
+
+    attron(A_BOLD);
+    mvprintw(1, x_offset, "Username");
+    attroff(A_BOLD);
+
+    mvaddnstr(2, x_offset, username, MIN(strlen(username), LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN));
+
+    x_offset += MAX(MIN(strlen(username), LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN), strlen("Username")) + TAB_LEN;
+
+    attron(A_BOLD);
+    mvprintw(1, x_offset, "Password");
+    attroff(A_BOLD);
+
+    mvaddnstr(2, x_offset, password, MIN(strlen(password), LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN));
+
+    x_offset += MAX(MIN(strlen(password), LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN), strlen("Password")) + TAB_LEN;
+
+    attron(A_BOLD);
+    mvprintw(1, x_offset, "URL");
+    attroff(A_BOLD);
+
+    mvaddnstr(2, x_offset, url, MIN(strlen(url), LOCKER_ITEM_ACCOUNT_URL_MAX_LEN));
+}
+
+void print_item_apikey_content(int x_offset, const size_t content_size, const char content[content_size]) {
+    attron(A_BOLD);
+    mvprintw(1, x_offset, "Value");
+    attroff(A_BOLD);
+
+    mvaddnstr(2, x_offset, content, content_size);
 }
 
 void view_item(locker_item_t item) {
@@ -438,11 +582,18 @@ void view_item(locker_item_t item) {
     mvprintw(2, x_offset, type);
     x_offset += MAX(strlen(type), strlen("Type"))+TAB_LEN;
 
-    attron(A_BOLD);
-    mvprintw(1, x_offset, "Value");
-    attroff(A_BOLD);
-
-    mvaddnstr(2, x_offset, (const char *)item.content, item.content_size);
+    switch(item.type) {
+        case LOCKER_ITEM_APIKEY:
+            print_item_apikey_content(x_offset, item.content_size, (const char *)item.content);
+            break;
+        case LOCKER_ITEM_ACCOUNT:
+            print_item_account_content(x_offset, (const char *)item.content);
+            break;
+        case LOCKER_ITEM_NOTE:
+            /* Not covered yet */
+            exit(EXIT_FAILURE);
+            break;
+    }
 
     const char *control_options[] = {"BACKSPACE: Return"};
 
@@ -456,35 +607,34 @@ void view_item(locker_item_t item) {
 }
 
 void item_list_view(context_t *ctx) {
-    clear();
-
-    attron(A_BOLD);
-    mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Items.");
-    attroff(A_BOLD);
-
     locker_item_t *items;
     long long n_items = locker_get_items(ctx->locker, &items);
-
     const char *control_options[] = {"BACKSPACE: Return"};
-    print_control_panel(sizeof(control_options)/sizeof(char *), control_options, n_items+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET, PRINTW_DEFAULT_X_OFFSET, TAB_LEN);
-
     char **choices = malloc(n_items*sizeof(char*));
     for(long long i = 0; i<n_items; i++) {
         choices[i] = items[i].key;
     }
 
-    int option = choice_selector(n_items, (const char **)choices, 1);
+    while(1) {
+        clear();
 
-    switch(option) {
-        case RETURN_OPTION:
+        attron(A_BOLD);
+        mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Items");
+        attroff(A_BOLD);
+        print_control_panel(sizeof(control_options)/sizeof(char *), control_options, n_items+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET, PRINTW_DEFAULT_X_OFFSET, TAB_LEN);
+
+        int option = choice_selector(n_items, (const char **)choices, 1);
+
+        if(option == RETURN_OPTION) {
             ctx->view = VIEW_LOCKER;
             break;
-        default:
-            view_item(items[option]);
-            break;
+        };
+
+        view_item(items[option]);
     }
 
     free(choices);
+    free_locker_items_list(n_items, items);
 }
 
 int run() {
