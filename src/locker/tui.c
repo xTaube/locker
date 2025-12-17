@@ -3,6 +3,7 @@
 #include "locker_tui_utils.h"
 #include "ncurses.h"
 #include <ctype.h>
+#include <ncurses.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +22,12 @@ typedef enum {
 } view_t;
 
 typedef struct {
+    int rows;
+    int cols;
+} window_size_t;
+
+typedef struct {
+  window_size_t win_size;
   view_t view;
   locker_t *locker;
 } context_t;
@@ -81,15 +88,36 @@ void locker_list_view(context_t *ctx) {
   mvprintw(1, 2, "%s", lockers[locker]);
   attroff(A_BOLD);
 
+  const char *unlock_file_control_options[] = {"ENTER: Try again", "BACKSPACE: Return"};
   char passphrase[LOCKER_PASSPHRASE_MAX_LEN + 2];
-  mvprintw(2, 2, "Passphrase: ");
-  refresh();
-  getnstr(passphrase, sizeof(passphrase) - 1);
 
-  ctx->locker = locker_open(lockers[locker], passphrase);
-  if (ctx->locker) {
-    ctx->view = VIEW_LOCKER;
-    return;
+  while(1){
+    mvprintw(2, 2, "Passphrase: ");
+    refresh();
+    getnstr(passphrase, sizeof(passphrase) - 1);
+
+    locker_result_t rc = locker_open(&(ctx->locker), lockers[locker], passphrase);
+    if (rc == LOCKER_OK) {
+        ctx->view = VIEW_LOCKER;
+        return;
+    } else if (rc == LOCKER_INVALID_PASSPRHRASE) {
+        mvprintw(4, 2, "Invalid passphrase.");
+    } else if (rc == LOCKER_MALFORMED_HEADER) {
+        mvprintw(4, 2, "Locker file you're trying to access is malformed. Check log file for more information.");
+    }
+
+    print_control_panel(sizeof(unlock_file_control_options)/sizeof(char*), unlock_file_control_options, 1+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET, PRINTW_DEFAULT_X_OFFSET, TAB_LEN);
+
+    int ch = getch();
+    if(ch == BACKSPACE_KEY) {
+        return;
+    } /* otherwise try to login once more */
+
+    move(4, 2);
+    clrtoeol();
+
+    move(5,2);
+    clrtoeol();
   }
 
   mvprintw(3, PRINTW_DEFAULT_X_OFFSET, "Something went wrong. Check logs for more information.");
@@ -638,11 +666,13 @@ void item_list_view(context_t *ctx) {
 }
 
 int run() {
-  context_t context = {.view = VIEW_STARTUP, .locker = NULL};
-
   initscr();
   turn_off_user_typing();
   keypad(stdscr, true);
+
+  context_t context = {.win_size = {0, 0}, .view = VIEW_STARTUP, .locker = NULL};
+  getmaxyx(stdscr, context.win_size.rows, context.win_size.cols);
+
   curs_set(0);
 
   bool running = true;

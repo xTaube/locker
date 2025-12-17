@@ -224,13 +224,12 @@ int lockers_list(char ***lockers) {
   return n_valid_lockers;
 }
 
-ATTR_NODISCARD ATTR_ALLOC locker_t *
-locker_open(const char locker_name[static 1], const char passphrase[static 1]) {
+locker_result_t locker_open(locker_t **locker, const char locker_name[static 1], const char passphrase[static 1]) {
   const char *filename = generate_locker_filename(locker_name);
   FILE *f = fopen(filename, "rb");
   if (!f) {
     perror("fopen");
-    return NULL;
+    return LOCKER_INVALID_LOCKER_FILE;
   }
 
   locker_header_t *header = malloc(sizeof(locker_header_t));
@@ -242,23 +241,26 @@ locker_open(const char locker_name[static 1], const char passphrase[static 1]) {
   fread(header, sizeof(locker_header_t), 1, f);
 
   if (header->magic != LOCKER_MAGIC) {
+    free(header);
+    fclose(f);
+
     log_message("%s file header is malformed. Locker Magic does not match.",
                 filename);
-    free(header);
-    return NULL;
+
+    return LOCKER_MALFORMED_HEADER;
   }
 
-  locker_t *locker = malloc(sizeof(locker_t));
-  if (!locker) {
+  *locker = malloc(sizeof(locker_t));
+  if (!(*locker)) {
     perror("malloc");
     exit(EXIT_FAILURE);
   }
 
-  strncpy(locker->locker_name, locker_name, LOCKER_NAME_MAX_LEN);
+  strncpy((*locker)->locker_name, locker_name, LOCKER_NAME_MAX_LEN);
   /* should read at most LOCKER_NAME_MAX_LEN chars */
-  locker->_header = header;
+  (*locker)->_header = header;
 
-  int rc = derieve_key(passphrase, locker->_key, LOCKER_CRYPTO_MASTER_KEY_LEN,
+  int rc = derieve_key(passphrase, (*locker)->_key, LOCKER_CRYPTO_MASTER_KEY_LEN,
                        header->salt);
   if (rc != 0) {
     /* TODO: handle it more gently - currently I'm not sure what error is
@@ -287,19 +289,23 @@ locker_open(const char locker_name[static 1], const char passphrase[static 1]) {
   }
   unsigned long long decrypted_len = 0;
 
-  if (crypto_aead_xchacha20poly1305_ietf_decrypt(
-          decrypted_db, &decrypted_len, NULL, encrypted_db, header->locker_size,
-          NULL, 0, header->nonce, locker->_key) != 0) {
-    log_message("Given passphrase does not match original one.");
-    exit(EXIT_FAILURE);
-  }
+  rc = crypto_aead_xchacha20poly1305_ietf_decrypt(decrypted_db, &decrypted_len, NULL, encrypted_db, header->locker_size, NULL, 0, header->nonce, (*locker)->_key);
   free(encrypted_db);
+
+  if (rc != 0) {
+    log_message("Given passphrase does not match original one.");
+    free(decrypted_db);
+    free((*locker)->_header);
+    free(*locker);
+
+    return LOCKER_INVALID_PASSPRHRASE;
+  }
 
   sqlite3 *db = get_db(decrypted_len, decrypted_db);
   /* do not free decrypted_db buffer as it ownership was given to sqlite db */
-  locker->_db = db;
+  (*locker)->_db = db;
 
-  return locker;
+  return LOCKER_OK;
 }
 
 locker_result_t save_locker(locker_t *locker) {

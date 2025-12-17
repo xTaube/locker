@@ -23,6 +23,9 @@ typedef enum {
   LOCKER_NAME_TOO_LONG,
   LOCKER_NAME_EMPTY,
   LOCKER_NAME_FORBIDDEN_CHAR,
+  LOCKER_INVALID_PASSPRHRASE,
+  LOCKER_MALFORMED_HEADER,
+  LOCKER_INVALID_LOCKER_FILE,
   LOCKER_CONTENT_TOO_LONG,
   LOCKER_ITEM_KEY_TOO_LONG,
   LOCKER_ITEM_DESCRIPTION_TOO_LONG,
@@ -71,8 +74,7 @@ locker_result_t locker_create(const char locker_name[static 1],
 
 int lockers_list(char ***lockers);
 
-ATTR_NODISCARD ATTR_ALLOC locker_t *
-locker_open(const char locker_name[static 1], const char passphrase[static 1]);
+locker_result_t locker_open(locker_t **locker, const char locker_name[static 1], const char passphrase[static 1]);
 
 locker_result_t save_locker(locker_t *locker);
 
