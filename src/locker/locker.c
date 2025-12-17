@@ -1,7 +1,9 @@
 #include "locker.h"
+#include "attrs.h"
 #include "locker_db.h"
 #include "locker_logs.h"
 #include "locker_stringutils.h"
+#include "locker_utils.h"
 #include "locker_version.h"
 #include "sodium/crypto_aead_xchacha20poly1305.h"
 #include <complex.h>
@@ -125,42 +127,32 @@ bool has_extension(const char filename[static 1], const char ext[static 1]) {
   return strcmp(filename + (lenf - lene), ext) == 0;
 }
 
-int locker_files_lookup(const char path[static 1], char ***filenames) {
+ATTR_ALLOC ATTR_NODISCARD
+array_str_t *locker_files_lookup(const char path[static 1]) {
   DIR *dir = opendir(path);
   if (!dir) {
     perror("opendir");
-    return -1;
+    return NULL;
   }
 
-  int cap = 1;
-
-  *filenames = malloc(cap * sizeof(char *)); /* currently there is no option to
-                                            create more then one locker file */
-
-  int n_locker_files = 0;
+  array_str_t *filenames = malloc(sizeof(array_str_t));
+  init_item_array(filenames);
 
   struct dirent *entry;
   while ((entry = readdir(dir)) != NULL) {
     if (entry->d_type == DT_DIR)
       continue;
     if (has_extension(entry->d_name, ".locker")) {
-      if (n_locker_files < cap) {
-        (*filenames)[n_locker_files] = strdup(entry->d_name);
-      } else {
-        if (cap * 2 > LOCKER_MAX_LOCKER_FILE_NUMBER) {
+        if (filenames->count >= LOCKER_MAX_LOCKER_FILE_NUMBER) {
           /* do not allow for cap overflow if there are somehow to many files */
           break;
         }
-        cap *= 2;
-        *filenames = realloc(*filenames, cap * sizeof(char *));
-        (*filenames)[n_locker_files] = strdup(entry->d_name);
-      }
-      n_locker_files++;
+        locker_array_t_append(filenames, strdup(entry->d_name));
     }
   }
 
   closedir(dir);
-  return n_locker_files;
+  return filenames;
 }
 
 ATTR_NODISCARD ATTR_ALLOC locker_header_t *
@@ -185,43 +177,39 @@ read_locker_header(const char filename[static 1]) {
   return header;
 }
 
-int lockers_list(char ***lockers) {
+ATTR_ALLOC ATTR_NODISCARD
+array_str_t *lockers_list() {
   char cwd[PATH_MAX];
   if (getcwd(cwd, sizeof(cwd)) == NULL) {
     perror("getcwd");
     exit(EXIT_FAILURE);
   }
 
-  char **locker_files;
-  int n_lockers = locker_files_lookup(cwd, &locker_files);
+  array_str_t *locker_files = locker_files_lookup(cwd);
 
-  if (n_lockers < 0) {
+  if (!locker_files) {
     exit(EXIT_FAILURE);
   }
 
-  if (n_lockers == 0) {
-    free(locker_files);
-    return 0;
+  array_str_t *lockers = malloc(sizeof(array_str_t));
+  init_item_array(lockers);
+
+  if (locker_files->count == 0) {
+    locker_array_t_free(locker_files, free);
+    return lockers;
   }
 
-  *(lockers) = malloc(n_lockers * sizeof(char *));
-
-  int n_valid_lockers = 0;
-  for (int i = 0; i < n_lockers; i++) {
-    locker_header_t *header = read_locker_header(locker_files[i]);
+  for (size_t i = 0; i < locker_files->count; i++) {
+    locker_header_t *header = read_locker_header(locker_files->values[i]);
     if (!header) {
       continue;
     }
-    (*lockers)[n_valid_lockers++] = strdup(header->locker_name);
+    locker_array_t_append(lockers, strdup(header->locker_name));
     free(header);
   }
 
-  for (int i = 0; i < n_lockers; i++) {
-    free(locker_files[i]);
-  }
-  free(locker_files);
-
-  return n_valid_lockers;
+  locker_array_t_free(locker_files, free);
+  return lockers;
 }
 
 locker_result_t locker_open(locker_t **locker, const char locker_name[static 1], const char passphrase[static 1]) {
@@ -393,15 +381,13 @@ locker_result_t locker_add_account(locker_t *locker, const char key[static 1], c
     return rc;
 }
 
-long long locker_get_items(locker_t *locker, locker_item_t **items) {
-  return db_list_items(locker->_db, items);
+ATTR_ALLOC ATTR_NODISCARD
+array_locker_item_t *locker_get_items(locker_t *locker) {
+  return db_list_items(locker->_db);
 }
 
-void free_locker_items_list(long long n_items, locker_item_t items[n_items]) {
-  for (long long i = 0; i < n_items; i++) {
-    free(items[i].key);
-    free(items[i].description);
-    free(items[i].content);
-  }
-  free(items);
+void locker_free_item(locker_item_t item) {
+    free(item.key);
+    free(item.description);
+    free(item.content);
 }

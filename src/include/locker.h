@@ -4,6 +4,7 @@
 #include "attrs.h"
 #include "locker_crypto.h"
 #include "locker_version.h"
+#include "locker_utils.h"
 #include "sqlite3.h"
 
 #define LOCKER_NAME_MAX_LEN 64
@@ -69,10 +70,12 @@ typedef struct {
   /* content size cannot be larger then INT_MAX (4 bytes) - sqlite constraint */
 } locker_item_t;
 
+DEFINE_LOCKER_ARRAY_T(locker_item_t, locker_item);
+
 locker_result_t locker_create(const char locker_name[static 1],
                               const char passphrase[static 1]);
 
-int lockers_list(char ***lockers);
+ATTR_ALLOC ATTR_NODISCARD array_str_t *lockers_list();
 
 locker_result_t locker_open(locker_t **locker, const char locker_name[static 1], const char passphrase[static 1]);
 
@@ -87,8 +90,8 @@ locker_result_t locker_add_item(locker_t *locker, const char key[static 1],
 
 locker_result_t locker_add_account(locker_t *locker, const char key[static 1], const char description[static 1], const char username[static 1], const char password[static 1], const char url[static 1]);
 
-long long locker_get_items(locker_t *locker, locker_item_t **items);
+ATTR_ALLOC ATTR_NODISCARD array_locker_item_t *locker_get_items(locker_t *locker);
 
-void free_locker_items_list(long long n_items, locker_item_t items[n_items]);
+void locker_free_item(locker_item_t item);
 
 #endif

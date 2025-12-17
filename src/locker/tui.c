@@ -1,6 +1,7 @@
 #include "curses.h"
 #include "locker.h"
 #include "locker_tui_utils.h"
+#include "locker_utils.h"
 #include "ncurses.h"
 #include <ctype.h>
 #include <ncurses.h>
@@ -65,19 +66,19 @@ void locker_list_view(context_t *ctx) {
   mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Lockers list");
   attroff(A_BOLD);
 
-  char **lockers;
-  int n_lockers = lockers_list(&lockers);
+  array_str_t *lockers = lockers_list();
 
-  if (n_lockers == 0) {
-    /* no allocations if n_lockers == 0 */
+  if (lockers->count == 0) {
+    /* no allocations if lockers->count == 0 */
     ctx->view = VIEW_NEW_LOCKER;
+    locker_array_t_free(lockers, free);
     return;
   }
 
   const char *control_options[] = {"BACKSPACE: Return"};
-  print_control_panel(sizeof(control_options)/sizeof(char*), control_options, n_lockers+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET, PRINTW_DEFAULT_X_OFFSET, TAB_LEN);
+  print_control_panel(sizeof(control_options)/sizeof(char*), control_options, lockers->count+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET, PRINTW_DEFAULT_X_OFFSET, TAB_LEN);
 
-  int locker = choice_selector(n_lockers, (const char **)lockers, 1);
+  int locker = choice_selector(lockers->count, (const char **)lockers->values, 1);
   if (locker < 0) {
     ctx->view = VIEW_STARTUP;
     return;
@@ -85,7 +86,7 @@ void locker_list_view(context_t *ctx) {
 
   clear();
   attron(A_BOLD);
-  mvprintw(1, 2, "%s", lockers[locker]);
+  mvprintw(1, 2, "%s", lockers->values[locker]);
   attroff(A_BOLD);
 
   const char *unlock_file_control_options[] = {"ENTER: Try again", "BACKSPACE: Return"};
@@ -96,7 +97,7 @@ void locker_list_view(context_t *ctx) {
     refresh();
     getnstr(passphrase, sizeof(passphrase) - 1);
 
-    locker_result_t rc = locker_open(&(ctx->locker), lockers[locker], passphrase);
+    locker_result_t rc = locker_open(&(ctx->locker), lockers->values[locker], passphrase);
     if (rc == LOCKER_OK) {
         ctx->view = VIEW_LOCKER;
         return;
@@ -110,6 +111,7 @@ void locker_list_view(context_t *ctx) {
 
     int ch = getch();
     if(ch == BACKSPACE_KEY) {
+        locker_array_t_free(lockers, free);
         return;
     } /* otherwise try to login once more */
 
@@ -635,12 +637,16 @@ void view_item(locker_item_t item) {
 }
 
 void item_list_view(context_t *ctx) {
-    locker_item_t *items;
-    long long n_items = locker_get_items(ctx->locker, &items);
+    array_locker_item_t *items = locker_get_items(ctx->locker);
     const char *control_options[] = {"BACKSPACE: Return"};
-    char **choices = malloc(n_items*sizeof(char*));
-    for(long long i = 0; i<n_items; i++) {
-        choices[i] = items[i].key;
+    char **choices = malloc(items->count*sizeof(char*));
+    if(!choices) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+
+    for(size_t i = 0; i<items->count; i++) {
+        choices[i] = items->values[i].key;
     }
 
     while(1) {
@@ -649,20 +655,20 @@ void item_list_view(context_t *ctx) {
         attron(A_BOLD);
         mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Items");
         attroff(A_BOLD);
-        print_control_panel(sizeof(control_options)/sizeof(char *), control_options, n_items+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET, PRINTW_DEFAULT_X_OFFSET, TAB_LEN);
+        print_control_panel(sizeof(control_options)/sizeof(char *), control_options, items->count+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET, PRINTW_DEFAULT_X_OFFSET, TAB_LEN);
 
-        int option = choice_selector(n_items, (const char **)choices, 1);
+        int option = choice_selector(items->count, (const char **)choices, 1);
 
         if(option == RETURN_OPTION) {
             ctx->view = VIEW_LOCKER;
             break;
         };
 
-        view_item(items[option]);
+        view_item(items->values[option]);
     }
 
     free(choices);
-    free_locker_items_list(n_items, items);
+    locker_array_t_free(items, locker_free_item);
 }
 
 int run() {

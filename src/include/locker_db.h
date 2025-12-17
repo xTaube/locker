@@ -22,7 +22,8 @@ void db_add_item(sqlite3 *db, const char key[static 1],
                  const unsigned char content[content_size],
                  locker_item_type_t item_type);
 
-long long db_list_items(sqlite3 *db, locker_item_t **items);
+ATTR_ALLOC ATTR_NODISCARD
+array_locker_item_t *db_list_items(sqlite3 *db);
 
 bool db_item_key_exists(sqlite3 *db, const char key[static 1]);
 

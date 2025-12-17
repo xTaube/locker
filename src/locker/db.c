@@ -1,5 +1,8 @@
+#include "attrs.h"
+#include "locker.h"
 #include "locker_db.h"
 #include "locker_logs.h"
+#include "locker_utils.h"
 #include "sqlite3.h"
 #include <stdbool.h>
 #include <stdio.h>
@@ -106,57 +109,47 @@ void db_add_item(sqlite3 *db, const char key[static 1],
   handle_sqlite_rc(db, rc, "SQL finalize error");
 }
 
-long long db_list_items(sqlite3 *db, locker_item_t **items) {
+ATTR_ALLOC ATTR_NODISCARD
+array_locker_item_t *db_list_items(sqlite3 *db) {
   sqlite3_stmt *stmt;
 
-  int rc =
-      sqlite3_prepare_v2(db, "SELECT COUNT(id) FROM items;", -1, &stmt, NULL);
-  handle_sqlite_rc(db, rc, "SQL prepare error");
-
-  rc = sqlite3_step(stmt);
-  if(rc != SQLITE_ROW)
-      handle_sqlite_rc(db, rc, "SQL step error");
-
-  long long count = sqlite3_column_int64(stmt, 0);
-  sqlite3_finalize(stmt);
-
-  *items = malloc(sizeof(locker_item_t) * count);
-  if (!(*items)) {
-    perror("malloc");
-    exit(EXIT_FAILURE);
+  array_locker_item_t *items = malloc(sizeof(array_locker_item_t));
+  if(!items) {
+      perror("malloc");
+      exit(EXIT_FAILURE);
   }
+  init_item_array(items);
 
-  rc = sqlite3_prepare_v2(
+  int rc = sqlite3_prepare_v2(
       db, "SELECT i.item_key, i.description, i.type, i.content FROM items AS i;", -1,
       &stmt, NULL);
   handle_sqlite_rc(db, rc, "SQL prepare error");
 
-  long long idx = 0;
   while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
-    (*items)[idx].key = strdup((const char *)sqlite3_column_text(stmt, 0));
-    (*items)[idx].description =
+    locker_item_t item = {0};
+    item.key = strdup((const char *)sqlite3_column_text(stmt, 0));
+    item.description =
         strdup((const char *)sqlite3_column_text(stmt, 1));
-    (*items)[idx].type = sqlite3_column_int(stmt, 2);
-    (*items)[idx].content_size = sqlite3_column_bytes(stmt, 3);
+    item.type = sqlite3_column_int(stmt, 2);
+    item.content_size = sqlite3_column_bytes(stmt, 3);
 
     const unsigned char *blob = sqlite3_column_blob(stmt, 3);
-    (*items)[idx].content =
-        malloc(sizeof(unsigned char) * (*items)[idx].content_size);
+    item.content =
+        malloc(sizeof(unsigned char) * item.content_size);
 
-    if (!(*items)[idx].content) {
+    if (!item.content) {
       perror("malloc");
       exit(EXIT_FAILURE);
     }
-    memcpy((*items)[idx].content, blob, (*items)[idx].content_size);
-
-    idx++;
+    memcpy(item.content, blob, item.content_size);
+    locker_array_t_append(items, item);
   }
   handle_sqlite_rc(db, rc, "SQL step error");
 
   rc = sqlite3_finalize(stmt);
   handle_sqlite_rc(db, rc, "SQL finalize error");
 
-  return count;
+  return items;
 }
 
 bool db_item_key_exists(sqlite3 *db, const char key[static 1]) {
