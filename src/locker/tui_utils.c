@@ -1,4 +1,3 @@
-#include <curses.h>
 #include <string.h>
 #include <ncurses.h>
 #include "locker_tui_utils.h"

@@ -3,10 +3,7 @@
 #include "locker_logs.h"
 #include "locker_tui_utils.h"
 #include "locker_utils.h"
-#include "ncurses.h"
-#include <ctype.h>
 #include <ncurses.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 

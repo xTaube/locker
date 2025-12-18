@@ -6,14 +6,10 @@
 #include "locker_utils.h"
 #include "locker_version.h"
 #include "sodium/crypto_aead_xchacha20poly1305.h"
-#include <complex.h>
 #include <dirent.h>
-#include <limits.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/_types/_null.h>
 #include <unistd.h>
 
 #define LOCKER_MAGIC 0xCA80D4219AB3F102

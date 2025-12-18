@@ -4,7 +4,6 @@
 #include "locker_logs.h"
 #include "locker_utils.h"
 #include "sqlite3.h"
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
