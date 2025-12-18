@@ -1,5 +1,6 @@
 #include "curses.h"
 #include "locker.h"
+#include "locker_logs.h"
 #include "locker_tui_utils.h"
 #include "locker_utils.h"
 #include "ncurses.h"
@@ -632,43 +633,86 @@ void view_item(locker_item_t item) {
 
     while(1) {
         int ch = getch();
-        if(ch == BACKSPACE_KEY) break;
+        if(ch == BACKSPACE_KEY) {
+            clear();
+            break;
+        }
     }
 }
 
 void item_list_view(context_t *ctx) {
-    array_locker_item_t *items = locker_get_items(ctx->locker);
-    const char *control_options[] = {"BACKSPACE: Return"};
-    char **choices = malloc(items->count*sizeof(char*));
-    if(!choices) {
-        perror("malloc");
-        exit(EXIT_FAILURE);
-    }
-
-    for(size_t i = 0; i<items->count; i++) {
-        choices[i] = items->values[i].key;
-    }
+    const char *control_options[] = {"CRTL-F: Search", "BACKSPACE: Return"};
+    char search_query[LOCKER_ITEM_KEY_QUERY_MAX_LEN] = {0};
 
     while(1) {
         clear();
+        array_locker_item_t *items = locker_get_items(ctx->locker, search_query);
+        size_t key_max_len = 0;
 
-        attron(A_BOLD);
-        mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Items");
-        attroff(A_BOLD);
-        print_control_panel(sizeof(control_options)/sizeof(char *), control_options, items->count+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET, PRINTW_DEFAULT_X_OFFSET, TAB_LEN);
+        char **choices = malloc(items->count*sizeof(char*));
+        if(!choices) {
+            perror("malloc");
+            exit(EXIT_FAILURE);
+        }
 
-        int option = choice_selector(items->count, (const char **)choices, 1);
+        for(size_t i = 0; i<items->count; i++) {
+            choices[i] = items->values[i].key;
+            key_max_len = MAX(strlen(items->values[i].key), key_max_len);
+        }
 
-        if(option == RETURN_OPTION) {
-            ctx->view = VIEW_LOCKER;
-            break;
-        };
+        size_t n_cols = (ctx->win_size.cols-PRINTW_DEFAULT_X_OFFSET)/(key_max_len+TAB_LEN);
+        size_t n_rows = (items->count + n_cols-1)/n_cols;
 
-        view_item(items->values[option]);
+        size_t highlight_col = 0, highlight_row = 0;
+        while(1) {
+            attron(A_BOLD);
+            mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Items");
+            attroff(A_BOLD);
+            print_control_panel(sizeof(control_options)/sizeof(char *), control_options, n_rows+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET, PRINTW_DEFAULT_X_OFFSET, TAB_LEN);
+
+            move(n_rows+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET-1, PRINTW_DEFAULT_X_OFFSET);
+            clrtoeol();
+            if(strlen(search_query)>0) {
+                attron(A_UNDERLINE);
+                mvprintw(n_rows+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET-1, PRINTW_DEFAULT_X_OFFSET, "Search: %s", search_query);
+                attroff(A_UNDERLINE);
+            }
+
+            for(size_t i = 0; i<n_rows; i++) {
+                for(size_t j = 0; i*n_cols+j < items->count && j<n_cols; j++) {
+                    if(highlight_row == i && highlight_col == j) attron(A_STANDOUT);
+                    mvprintw(2+i, PRINTW_DEFAULT_X_OFFSET+j*(TAB_LEN+key_max_len), choices[i*n_cols+j]);
+                    if(highlight_row == i && highlight_col == j) attroff(A_STANDOUT);
+                }
+            }
+            refresh();
+
+            int ch = getch();
+            if(ch == BACKSPACE_KEY) {
+                ctx->view = VIEW_LOCKER;
+                free(choices);
+                locker_array_t_free(items, locker_free_item);
+                return;
+            } else if(ch == ENTER_KEY) {
+                view_item(items->values[highlight_row*n_cols + highlight_col]);
+            } else if(ch == CTRL_F_KEY) {
+                mvprintw(n_rows+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET-1, PRINTW_DEFAULT_X_OFFSET, "Search: %s", search_query);
+                get_user_str(sizeof(search_query), search_query, n_rows+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET-1, PRINTW_DEFAULT_X_OFFSET+strlen("Search: "), n_rows+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET, PRINTW_DEFAULT_X_OFFSET, true, true, 0);
+                break;
+            } else if (ch == KEY_UP) {
+                if(highlight_row > 0) highlight_row--;
+            } else if (ch == KEY_DOWN) {
+                if(highlight_row < n_rows-1) highlight_row++;
+            } else if(ch == KEY_RIGHT) {
+                if(highlight_col < n_cols-1 && (highlight_row*n_cols + highlight_col) < (items->count-1)) highlight_col++;
+            } else if(ch == KEY_LEFT) {
+                if(highlight_col > 0) highlight_col--;
+            }
+        }
+
+        free(choices);
+        locker_array_t_free(items, locker_free_item);
     }
-
-    free(choices);
-    locker_array_t_free(items, locker_free_item);
 }
 
 int run() {

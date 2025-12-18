@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/_types/_null.h>
 #include <unistd.h>
 
 #define LOCKER_MAGIC 0xCA80D4219AB3F102
@@ -382,8 +383,8 @@ locker_result_t locker_add_account(locker_t *locker, const char key[static 1], c
 }
 
 ATTR_ALLOC ATTR_NODISCARD
-array_locker_item_t *locker_get_items(locker_t *locker) {
-  return db_list_items(locker->_db);
+array_locker_item_t *locker_get_items(locker_t *locker, const char query[LOCKER_ITEM_KEY_MAX_LEN]) {
+  return db_list_items(locker->_db, query);
 }
 
 void locker_free_item(locker_item_t item) {

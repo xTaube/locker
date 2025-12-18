@@ -110,8 +110,29 @@ void db_add_item(sqlite3 *db, const char key[static 1],
 }
 
 ATTR_ALLOC ATTR_NODISCARD
-array_locker_item_t *db_list_items(sqlite3 *db) {
+array_locker_item_t *db_list_items(sqlite3 *db, const char query[LOCKER_ITEM_KEY_QUERY_MAX_LEN]) {
+  char sql[512];
+  strcpy(sql, "SELECT i.item_key, i.description, i.type, i.content FROM items AS i WHERE 1=1");
+
+  if(strlen(query) > 0) {
+      strcat(sql, " AND i.item_key LIKE ?1");
+  }
+
+  strcat(sql, " ORDER BY i.item_key ASC;");
+
   sqlite3_stmt *stmt;
+  int rc = sqlite3_prepare_v2(
+      db, sql, -1,
+      &stmt, NULL);
+  handle_sqlite_rc(db, rc, "SQL prepare error");
+
+  if(strlen(query) > 0) {
+    char like_query[LOCKER_ITEM_KEY_QUERY_MAX_LEN+3];
+    snprintf(like_query, sizeof(like_query), "%%%s%%", query);
+
+    rc = sqlite3_bind_text(stmt, 1, like_query, -1, SQLITE_TRANSIENT);
+    handle_sqlite_rc(db, rc, "SQL bind error");
+  }
 
   array_locker_item_t *items = malloc(sizeof(array_locker_item_t));
   if(!items) {
@@ -120,16 +141,13 @@ array_locker_item_t *db_list_items(sqlite3 *db) {
   }
   init_item_array(items);
 
-  int rc = sqlite3_prepare_v2(
-      db, "SELECT i.item_key, i.description, i.type, i.content FROM items AS i;", -1,
-      &stmt, NULL);
-  handle_sqlite_rc(db, rc, "SQL prepare error");
-
   while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
     locker_item_t item = {0};
     item.key = strdup((const char *)sqlite3_column_text(stmt, 0));
-    item.description =
-        strdup((const char *)sqlite3_column_text(stmt, 1));
+
+    const unsigned char *description = sqlite3_column_text(stmt, 1);
+    item.description = description ? strdup((const char *)description) : NULL;
+
     item.type = sqlite3_column_int(stmt, 2);
     item.content_size = sqlite3_column_bytes(stmt, 3);
 

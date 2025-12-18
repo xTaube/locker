@@ -18,6 +18,7 @@
 #define LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN 512
 #define LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN 512
 #define LOCKER_ITEM_ACCOUNT_URL_MAX_LEN 512
+#define LOCKER_ITEM_KEY_QUERY_MAX_LEN 128
 
 typedef enum {
   LOCKER_OK = 0,
@@ -90,7 +91,7 @@ locker_result_t locker_add_item(locker_t *locker, const char key[static 1],
 
 locker_result_t locker_add_account(locker_t *locker, const char key[static 1], const char description[static 1], const char username[static 1], const char password[static 1], const char url[static 1]);
 
-ATTR_ALLOC ATTR_NODISCARD array_locker_item_t *locker_get_items(locker_t *locker);
+ATTR_ALLOC ATTR_NODISCARD array_locker_item_t *locker_get_items(locker_t *locker, const char *query);
 
 void locker_free_item(locker_item_t item);
 
