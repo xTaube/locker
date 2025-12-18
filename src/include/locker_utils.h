@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+#define DEFAULT_LOCKER_ARRAY_T_CAPACITY 16
+
 #define DEFINE_LOCKER_ARRAY_T(type, name) \
     typedef struct { \
         type *values; \
@@ -22,7 +24,7 @@
 #define locker_array_t_append(array, value) \
     do { \
         if((array)->count >= (array)->capacity) { \
-            (array)->capacity = (array)->capacity ? (array)->capacity*2 : 16; \
+            (array)->capacity = (array)->capacity ? (array)->capacity*2 : DEFAULT_LOCKER_ARRAY_T_CAPACITY; \
             (array)->values = realloc((array)->values, sizeof(value)*(array)->capacity); \
             if(!(array)->values) { \
                 perror("realloc"); \
