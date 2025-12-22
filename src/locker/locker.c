@@ -144,7 +144,7 @@ array_str_t *locker_files_lookup(const char path[static 1]) {
           /* do not allow for cap overflow if there are somehow to many files */
           break;
         }
-        locker_array_t_append(filenames, strdup(entry->d_name));
+        locker_array_append(filenames, strdup(entry->d_name));
     }
   }
 
@@ -201,7 +201,7 @@ array_str_t *lockers_list() {
     if (!header) {
       continue;
     }
-    locker_array_t_append(lockers, strdup(header->locker_name));
+    locker_array_append(lockers, strdup(header->locker_name));
     free(header);
   }
 
@@ -293,7 +293,7 @@ locker_result_t locker_open(locker_t **locker, const char locker_name[static 1],
   return LOCKER_OK;
 }
 
-locker_result_t save_locker(locker_t *locker) {
+locker_result_t save_locker(locker_t locker[static 1]) {
     unsigned char *serialized_db;
     sqlite3_int64 db_size = db_dump(locker->_db, &serialized_db);
 
@@ -320,45 +320,77 @@ locker_result_t save_locker(locker_t *locker) {
     return LOCKER_OK;
 }
 
-locker_result_t close_locker(locker_t *locker) {
+locker_result_t close_locker(locker_t locker[static 1]) {
   db_close(locker->_db);
   free(locker);
 
   return LOCKER_OK;
 }
 
-locker_result_t locker_add_item(locker_t *locker, const char key[static 1],
-                                const char description[static 1], const int content_size, const unsigned char content[content_size],
-                                locker_item_type_t type) {
-  if (strlen(key) > LOCKER_ITEM_KEY_MAX_LEN) {
+locker_result_t locker_add_apikey(const locker_t locker[static 1], const locker_item_apikey_t apikey[static 1]) {
+  if (strlen(apikey->key) > LOCKER_ITEM_KEY_MAX_LEN) {
     return LOCKER_ITEM_KEY_TOO_LONG;
   }
 
-  if (db_item_key_exists(locker->_db, key)) {
+  if (db_item_key_exists(locker->_db, apikey->id, apikey->key)) {
     return LOCKER_ITEM_KEY_EXISTS;
   }
 
-  if (strlen(description) > LOCKER_ITEM_DESCRIPTION_MAX_LEN) {
+  if (strlen(apikey->description) > LOCKER_ITEM_DESCRIPTION_MAX_LEN) {
     return LOCKER_ITEM_DESCRIPTION_TOO_LONG;
   }
 
-  if (content_size > LOCKER_ITEM_CONTENT_MAX_LEN) {
+  if (strlen(apikey->apikey) > LOCKER_ITEM_CONTENT_MAX_LEN) {
     return LOCKER_CONTENT_TOO_LONG;
   }
 
-  db_add_item(locker->_db, key, description, content_size, content, type);
+  db_add_item(locker->_db, apikey->key, apikey->description, strlen(apikey->apikey), (unsigned char *)apikey->apikey, LOCKER_ITEM_APIKEY);
 
   return LOCKER_OK;
 }
 
-locker_result_t locker_add_account(locker_t *locker, const char key[static 1], const char description[static 1], const char username[static 1], const char password[static 1], const char url[static 1]) {
-    if(strlen(username) > LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN) {
+locker_result_t locker_update_apikey(const locker_t locker[static 1], const locker_item_apikey_t apikey[static 1]) {
+  if (strlen(apikey->key) > LOCKER_ITEM_KEY_MAX_LEN) {
+    return LOCKER_ITEM_KEY_TOO_LONG;
+  }
+
+  if (db_item_key_exists(locker->_db, apikey->id, apikey->key)) {
+    return LOCKER_ITEM_KEY_EXISTS;
+  }
+
+  if (strlen(apikey->description) > LOCKER_ITEM_DESCRIPTION_MAX_LEN) {
+    return LOCKER_ITEM_DESCRIPTION_TOO_LONG;
+  }
+
+  if (strlen(apikey->apikey) > LOCKER_ITEM_CONTENT_MAX_LEN) {
+    return LOCKER_CONTENT_TOO_LONG;
+  }
+
+  db_item_update(locker->_db, apikey->id, apikey->key, apikey->description, strlen(apikey->apikey), (const unsigned char *)apikey->apikey);
+
+  return LOCKER_OK;
+}
+
+locker_result_t locker_add_account(const locker_t locker[static 1], const locker_item_account_t account[static 1]) {
+    if (strlen(account->key) > LOCKER_ITEM_KEY_MAX_LEN) {
+      return LOCKER_ITEM_KEY_TOO_LONG;
+    }
+
+    if (db_item_key_exists(locker->_db, account->id, account->key)) {
+      return LOCKER_ITEM_KEY_EXISTS;
+    }
+
+    if (strlen(account->description) > LOCKER_ITEM_DESCRIPTION_MAX_LEN) {
+      return LOCKER_ITEM_DESCRIPTION_TOO_LONG;
+    }
+
+    if(strlen(account->username) > LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN) {
         return LOCKER_ITEM_ACCOUNT_USERNAME_TOO_LONG;
     }
-    if(strlen(password) > LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN) {
+    if(strlen(account->password) > LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN) {
         return LOCKER_ITEM_ACCOUNT_PASSWORD_TOO_LONG;
     }
-    if(strlen(url) > LOCKER_ITEM_ACCOUNT_URL_MAX_LEN) {
+    if(strlen(account->url) > LOCKER_ITEM_ACCOUNT_URL_MAX_LEN) {
         return LOCKER_ITEM_ACCOUNT_URL_TOO_LONG;
     }
 
@@ -368,23 +400,83 @@ locker_result_t locker_add_account(locker_t *locker, const char key[static 1], c
         exit(EXIT_FAILURE);
     }
 
-    memcpy(content, username, strlen(username));
-    memcpy(content+LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN, password, strlen(password));
-    memcpy(content+LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN+LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN, url, strlen(url));
+    memcpy(content, account->username, strlen(account->username));
+    memcpy(content+LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN, account->password, strlen(account->password));
+    memcpy(content+LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN+LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN, account->url, strlen(account->url));
 
-    int rc = locker_add_item(locker, key, description, LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN+LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN+LOCKER_ITEM_ACCOUNT_URL_MAX_LEN, (const unsigned char *)content, LOCKER_ITEM_ACCOUNT);
+    db_add_item(locker->_db, account->key, account->description, LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN+LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN+LOCKER_ITEM_ACCOUNT_URL_MAX_LEN, (const unsigned char *)content, LOCKER_ITEM_ACCOUNT);
 
     free(content);
-    return rc;
+    return LOCKER_OK;
+}
+
+locker_result_t locker_update_account(const locker_t locker[static 1], const locker_item_account_t account[static 1]) {
+    if (strlen(account->key) > LOCKER_ITEM_KEY_MAX_LEN) {
+      return LOCKER_ITEM_KEY_TOO_LONG;
+    }
+
+    if (db_item_key_exists(locker->_db, account->id, account->key)) {
+      return LOCKER_ITEM_KEY_EXISTS;
+    }
+
+    if (strlen(account->description) > LOCKER_ITEM_DESCRIPTION_MAX_LEN) {
+      return LOCKER_ITEM_DESCRIPTION_TOO_LONG;
+    }
+
+    if(strlen(account->username) > LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN) {
+        return LOCKER_ITEM_ACCOUNT_USERNAME_TOO_LONG;
+    }
+    if(strlen(account->password) > LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN) {
+        return LOCKER_ITEM_ACCOUNT_PASSWORD_TOO_LONG;
+    }
+    if(strlen(account->url) > LOCKER_ITEM_ACCOUNT_URL_MAX_LEN) {
+        return LOCKER_ITEM_ACCOUNT_URL_TOO_LONG;
+    }
+
+    char *content = calloc(LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN+LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN+ LOCKER_ITEM_ACCOUNT_URL_MAX_LEN, sizeof(char));
+    if(!content) {
+        perror("calloc");
+        exit(EXIT_FAILURE);
+    }
+
+    memcpy(content, account->username, strlen(account->username));
+    memcpy(content+LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN, account->password, strlen(account->password));
+    memcpy(content+LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN+LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN, account->url, strlen(account->url));
+
+    db_item_update(locker->_db, account->id, account->key, account->description, LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN+LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN+LOCKER_ITEM_ACCOUNT_URL_MAX_LEN, (const unsigned char *)content);
+
+    free(content);
+    return LOCKER_OK;
 }
 
 ATTR_ALLOC ATTR_NODISCARD
-array_locker_item_t *locker_get_items(locker_t *locker, const char query[LOCKER_ITEM_KEY_MAX_LEN]) {
+array_locker_item_t *locker_get_items(locker_t locker[static 1], const char query[LOCKER_ITEM_KEY_MAX_LEN]) {
   return db_list_items(locker->_db, query);
+}
+
+ATTR_ALLOC ATTR_NODISCARD locker_item_apikey_t *locker_get_apikey(const locker_t locker[static 1], long long item_id) {
+    return db_get_apikey(locker->_db, item_id);
+}
+ATTR_ALLOC ATTR_NODISCARD locker_item_account_t *locker_get_account(const locker_t locker[static 1], long long item_id) {
+    return db_get_account(locker->_db, item_id);
 }
 
 void locker_free_item(locker_item_t item) {
     free(item.key);
-    free(item.description);
-    free(item.content);
+}
+
+void locker_free_apikey(locker_item_apikey_t item[static 1]) {
+    free(item->key);
+    free(item->description);
+    free(item->apikey);
+    free(item);
+}
+
+void locker_free_account(locker_item_account_t item[static 1]) {
+    free(item->key);
+    free(item->description);
+    free(item->username);
+    free(item->password);
+    free(item->url);
+    free(item);
 }

@@ -21,7 +21,7 @@
     } while(0) \
 
 
-#define locker_array_t_append(array, value) \
+#define locker_array_append(array, value) \
     do { \
         if((array)->count >= (array)->capacity) { \
             (array)->capacity = (array)->capacity ? (array)->capacity*2 : DEFAULT_LOCKER_ARRAY_T_CAPACITY; \

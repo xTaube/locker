@@ -63,15 +63,28 @@ typedef enum {
 } locker_item_type_t;
 
 typedef struct {
-  char *key;
-  char *description;
-  locker_item_type_t type;
-  unsigned char *content;
-  int content_size;
-  /* content size cannot be larger then INT_MAX (4 bytes) - sqlite constraint */
+    long long id;
+    char *key;
+    locker_item_type_t type;
 } locker_item_t;
 
 DEFINE_LOCKER_ARRAY_T(locker_item_t, locker_item);
+
+typedef struct {
+    long long id;
+    char *key;
+    char *description;
+    char *apikey;
+} locker_item_apikey_t;
+
+typedef struct {
+    long long id;
+    char *key;
+    char *description;
+    char *username;
+    char *password;
+    char *url;
+} locker_item_account_t;
 
 locker_result_t locker_create(const char locker_name[static 1],
                               const char passphrase[static 1]);
@@ -79,20 +92,21 @@ locker_result_t locker_create(const char locker_name[static 1],
 ATTR_ALLOC ATTR_NODISCARD array_str_t *lockers_list();
 
 locker_result_t locker_open(locker_t **locker, const char locker_name[static 1], const char passphrase[static 1]);
+locker_result_t save_locker(locker_t locker[static 1]);
+locker_result_t close_locker(locker_t locker[static 1]);
 
-locker_result_t save_locker(locker_t *locker);
+locker_result_t locker_add_apikey(const locker_t locker[static 1], const locker_item_apikey_t item[static 1]);
+locker_result_t locker_update_apikey(const locker_t locker[static 1], const locker_item_apikey_t item[static 1]);
 
-locker_result_t close_locker(locker_t *locker);
+locker_result_t locker_add_account(const locker_t locker[static 1], const locker_item_account_t account[static 1]);
+locker_result_t locker_update_account(const locker_t locker[static 1], const locker_item_account_t account[static 1]);
 
-locker_result_t locker_add_item(locker_t *locker, const char key[static 1],
-                                const char description[static 1], const int content_size, const unsigned char content[content_size],
-                                locker_item_type_t type);
-
-
-locker_result_t locker_add_account(locker_t *locker, const char key[static 1], const char description[static 1], const char username[static 1], const char password[static 1], const char url[static 1]);
-
-ATTR_ALLOC ATTR_NODISCARD array_locker_item_t *locker_get_items(locker_t *locker, const char *query);
+ATTR_ALLOC ATTR_NODISCARD array_locker_item_t *locker_get_items(locker_t locker[static 1], const char query[LOCKER_ITEM_KEY_MAX_LEN]);
+ATTR_ALLOC ATTR_NODISCARD locker_item_apikey_t *locker_get_apikey(const locker_t locker[static 1], long long item_id);
+ATTR_ALLOC ATTR_NODISCARD locker_item_account_t *locker_get_account(const locker_t locker[static 1], long long item_id);
 
 void locker_free_item(locker_item_t item);
+void locker_free_apikey(locker_item_apikey_t item[static 1]);
+void locker_free_account(locker_item_account_t item[static 1]);
 
 #endif

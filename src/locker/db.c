@@ -111,7 +111,7 @@ void db_add_item(sqlite3 *db, const char key[static 1],
 ATTR_ALLOC ATTR_NODISCARD
 array_locker_item_t *db_list_items(sqlite3 *db, const char query[LOCKER_ITEM_KEY_QUERY_MAX_LEN]) {
   char sql[512];
-  strcpy(sql, "SELECT i.item_key, i.description, i.type, i.content FROM items AS i WHERE 1=1");
+  strcpy(sql, "SELECT i.id, i.item_key, i.type FROM items AS i WHERE 1=1");
 
   if(strlen(query) > 0) {
       strcat(sql, " AND i.item_key LIKE ?1");
@@ -133,7 +133,7 @@ array_locker_item_t *db_list_items(sqlite3 *db, const char query[LOCKER_ITEM_KEY
     handle_sqlite_rc(db, rc, "SQL bind error");
   }
 
-  array_locker_item_t *items = malloc(sizeof(array_locker_item_t));
+  array_locker_item_t *items = malloc(sizeof(array_str_t));
   if(!items) {
       perror("malloc");
       exit(EXIT_FAILURE);
@@ -141,26 +141,14 @@ array_locker_item_t *db_list_items(sqlite3 *db, const char query[LOCKER_ITEM_KEY
   init_item_array(items);
 
   while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
-    locker_item_t item = {0};
-    item.key = strdup((const char *)sqlite3_column_text(stmt, 0));
-
-    const unsigned char *description = sqlite3_column_text(stmt, 1);
-    item.description = description ? strdup((const char *)description) : NULL;
-
+    locker_item_t item;
+    item.id = sqlite3_column_int64(stmt, 0);
+    item.key = strdup((const char *)sqlite3_column_text(stmt, 1));
     item.type = sqlite3_column_int(stmt, 2);
-    item.content_size = sqlite3_column_bytes(stmt, 3);
 
-    const unsigned char *blob = sqlite3_column_blob(stmt, 3);
-    item.content =
-        malloc(sizeof(unsigned char) * item.content_size);
-
-    if (!item.content) {
-      perror("malloc");
-      exit(EXIT_FAILURE);
-    }
-    memcpy(item.content, blob, item.content_size);
-    locker_array_t_append(items, item);
+    locker_array_append(items, item);
   }
+
   handle_sqlite_rc(db, rc, "SQL step error");
 
   rc = sqlite3_finalize(stmt);
@@ -169,14 +157,104 @@ array_locker_item_t *db_list_items(sqlite3 *db, const char query[LOCKER_ITEM_KEY
   return items;
 }
 
-bool db_item_key_exists(sqlite3 *db, const char key[static 1]) {
+ATTR_ALLOC ATTR_NODISCARD locker_item_apikey_t *db_get_apikey(sqlite3 *db, long long item_id) {
+    sqlite3_stmt *stmt;
+
+    int rc = sqlite3_prepare_v2(
+        db,
+        "SELECT i.id, i.item_key, i.description, i.content FROM items AS i WHERE i.id = ?1;",
+        -1,
+        &stmt,
+        NULL
+    );
+    handle_sqlite_rc(db, rc, "SQL prepare error");
+
+    rc = sqlite3_bind_int64(stmt, 1, item_id);
+    handle_sqlite_rc(db, rc, "SQL bind error");
+
+    rc = sqlite3_step(stmt);
+    if(rc != SQLITE_ROW)
+        handle_sqlite_rc(db, rc, "SQL step error");
+
+    locker_item_apikey_t *apikey = malloc(sizeof(locker_item_apikey_t));
+    if(!apikey) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+
+    apikey->id = sqlite3_column_int64(stmt, 0);
+    apikey->key = strdup((const char *)sqlite3_column_text(stmt, 1));
+    apikey->description = strdup((const char *)sqlite3_column_text(stmt, 2));
+
+    int content_size = sqlite3_column_bytes(stmt, 3);
+    apikey->apikey = malloc((content_size+1)*sizeof(char));
+    const void *content = sqlite3_column_blob(stmt, 3);
+
+    memcpy(apikey->apikey, (char *)content, content_size);
+    apikey->apikey[content_size] = '\0';
+
+    rc = sqlite3_finalize(stmt);
+    handle_sqlite_rc(db, rc, "SQL finalize error");
+
+    return apikey;
+}
+
+ATTR_ALLOC ATTR_NODISCARD locker_item_account_t *db_get_account(sqlite3 *db, long long item_id) {
+    sqlite3_stmt *stmt;
+
+    int rc = sqlite3_prepare_v2(
+        db,
+        "SELECT i.id, i.item_key, i.description, i.content FROM items AS i WHERE i.id = ?1;",
+        -1,
+        &stmt,
+        NULL
+    );
+    handle_sqlite_rc(db, rc, "SQL prepare error");
+
+    rc = sqlite3_bind_int64(stmt, 1, item_id);
+    handle_sqlite_rc(db, rc, "SQL bind error");
+
+    rc = sqlite3_step(stmt);
+    if(rc != SQLITE_ROW)
+        handle_sqlite_rc(db, rc, "SQL step error");
+
+    locker_item_account_t *account = malloc(sizeof(locker_item_account_t));
+    if(!account) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+
+    account->id = sqlite3_column_int64(stmt, 0);
+    account->key = strdup((const char *)sqlite3_column_text(stmt, 1));
+
+    const char *description = (const char *)sqlite3_column_text(stmt, 2);
+    if(description)
+        account->description = strdup(description);
+    else
+        account->description = NULL;
+
+    const char *content = sqlite3_column_blob(stmt, 3);
+    account->username = strdup(content);
+    account->password = strdup(content+LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN);
+    account->url = strdup(content+LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN+LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN);
+
+    rc = sqlite3_finalize(stmt);
+    handle_sqlite_rc(db, rc, "SQL finalize error");
+
+    return account;
+}
+
+bool db_item_key_exists(sqlite3 *db, long long item_id, const char key[static 1]) {
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(
-      db, "SELECT EXISTS(SELECT 1 FROM items WHERE item_key = ?1);", -1, &stmt, NULL);
+      db, "SELECT EXISTS(SELECT 1 FROM items WHERE id != ?1 AND item_key = ?2);", -1, &stmt, NULL);
   handle_sqlite_rc(db, rc, "SQL prepare error");
 
-  rc = sqlite3_bind_text(stmt, 1, key, -1, SQLITE_TRANSIENT);
+  rc = sqlite3_bind_int64(stmt, 1, item_id);
+  handle_sqlite_rc(db, rc, "SQL bind error");
+
+  rc = sqlite3_bind_text(stmt, 2, key, -1, SQLITE_TRANSIENT);
   handle_sqlite_rc(db, rc, "SQL bind error");
 
   rc = sqlite3_step(stmt);
@@ -189,4 +267,39 @@ bool db_item_key_exists(sqlite3 *db, const char key[static 1]) {
   handle_sqlite_rc(db, rc, "SQL finalize error");
 
   return exists == 1;
+}
+
+
+void db_item_update(
+    sqlite3 *db,
+    long long item_id,
+    const char key[static 1],
+    const char description[static 1],
+    const int content_size,
+    const unsigned char content[content_size]
+) {
+    sqlite3_stmt *stmt;
+    int rc = sqlite3_prepare_v2(
+        db,
+        "UPDATE items SET item_key=?1, description=?2, content=?3, updated_at=strftime('%s', 'now') WHERE id=?4;",
+        -1, &stmt, NULL);
+
+    handle_sqlite_rc(db, rc, "SQL prepare error");
+
+    rc = sqlite3_bind_text(stmt, 1, key, -1, SQLITE_TRANSIENT);
+    handle_sqlite_rc(db, rc, "SQL bind error");
+
+    rc = sqlite3_bind_text(stmt, 2, description, -1, SQLITE_TRANSIENT);
+    handle_sqlite_rc(db, rc, "SQL bind error");
+
+    rc = sqlite3_bind_blob(stmt, 3, content, content_size, SQLITE_TRANSIENT);
+    handle_sqlite_rc(db, rc, "SQL bind error");
+
+    rc = sqlite3_bind_int64(stmt, 4, item_id);
+
+    rc = sqlite3_step(stmt);
+    handle_sqlite_rc(db, rc, "SQL step error");
+
+    rc = sqlite3_finalize(stmt);
+    handle_sqlite_rc(db, rc, "SQL finalize error");
 }
