@@ -755,7 +755,7 @@ void view_item(context_t *ctx, locker_item_t item[static 1]) {
 }
 
 void item_list_view(context_t *ctx) {
-    const char *control_options[] = {"CRTL-F: Search", "BACKSPACE: Return"};
+    const char *control_options[] = {"CTRL-F: Search", "BACKSPACE: Return"};
     char search_query[LOCKER_ITEM_KEY_QUERY_MAX_LEN] = {0};
 
     while(1) {
@@ -808,7 +808,7 @@ void item_list_view(context_t *ctx) {
             } else if (ch == KEY_UP) {
                 if(highlight_row > 0) highlight_row--;
             } else if (ch == KEY_DOWN) {
-                if(highlight_row < n_rows-1) highlight_row++;
+                if(highlight_row < n_rows-1 && ((highlight_row+1)*n_cols + highlight_col) < items->count) highlight_row++;
             } else if(ch == KEY_RIGHT) {
                 if(highlight_col < n_cols-1 && (highlight_row*n_cols + highlight_col) < (items->count-1)) highlight_col++;
             } else if(ch == KEY_LEFT) {
