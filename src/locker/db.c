@@ -187,11 +187,11 @@ ATTR_ALLOC ATTR_NODISCARD locker_item_apikey_t *db_get_apikey(sqlite3 *db, sqlit
     apikey->description = strdup((const char *)sqlite3_column_text(stmt, 2));
 
     int content_size = sqlite3_column_bytes(stmt, 3);
-    apikey->apikey = malloc((content_size+1)*sizeof(char));
+    apikey->value = malloc((content_size+1)*sizeof(char));
     const void *content = sqlite3_column_blob(stmt, 3);
 
-    memcpy(apikey->apikey, (char *)content, content_size);
-    apikey->apikey[content_size] = '\0';
+    memcpy(apikey->value, (char *)content, content_size);
+    apikey->value[content_size] = '\0';
 
     rc = sqlite3_finalize(stmt);
     handle_sqlite_rc(db, rc, "SQL finalize error");

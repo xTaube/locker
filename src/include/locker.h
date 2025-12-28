@@ -74,7 +74,7 @@ typedef struct {
     sqlite_int64 id;
     char *key;
     char *description;
-    char *apikey;
+    char *value;
 } locker_item_apikey_t;
 
 typedef struct {

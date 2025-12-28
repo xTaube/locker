@@ -340,11 +340,11 @@ locker_result_t locker_add_apikey(const locker_t locker[static 1], const locker_
     return LOCKER_ITEM_DESCRIPTION_TOO_LONG;
   }
 
-  if (strlen(apikey->apikey) > LOCKER_ITEM_CONTENT_MAX_LEN) {
+  if (strlen(apikey->value) > LOCKER_ITEM_CONTENT_MAX_LEN) {
     return LOCKER_CONTENT_TOO_LONG;
   }
 
-  db_add_item(locker->_db, apikey->key, apikey->description, strlen(apikey->apikey), (unsigned char *)apikey->apikey, LOCKER_ITEM_APIKEY);
+  db_add_item(locker->_db, apikey->key, apikey->description, strlen(apikey->value), (unsigned char *)apikey->value, LOCKER_ITEM_APIKEY);
 
   return LOCKER_OK;
 }
@@ -362,11 +362,11 @@ locker_result_t locker_update_apikey(const locker_t locker[static 1], const lock
     return LOCKER_ITEM_DESCRIPTION_TOO_LONG;
   }
 
-  if (strlen(apikey->apikey) > LOCKER_ITEM_CONTENT_MAX_LEN) {
+  if (strlen(apikey->value) > LOCKER_ITEM_CONTENT_MAX_LEN) {
     return LOCKER_CONTENT_TOO_LONG;
   }
 
-  db_item_update(locker->_db, apikey->id, apikey->key, apikey->description, strlen(apikey->apikey), (const unsigned char *)apikey->apikey);
+  db_item_update(locker->_db, apikey->id, apikey->key, apikey->description, strlen(apikey->value), (const unsigned char *)apikey->value);
 
   return LOCKER_OK;
 }
@@ -473,7 +473,7 @@ void locker_free_item(locker_item_t item) {
 void locker_free_apikey(locker_item_apikey_t item[static 1]) {
     free(item->key);
     free(item->description);
-    free(item->apikey);
+    free(item->value);
     free(item);
 }
 
