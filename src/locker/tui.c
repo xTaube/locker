@@ -713,7 +713,9 @@ void print_account(context_t *ctx, const locker_item_t *item) {
     locker_free_account(account);
 }
 
-void view_item(context_t *ctx, locker_item_t item[static 1]) {
+bool view_item(context_t *ctx, locker_item_t item[static 1]) {
+    bool item_changed = false;
+
     while(1) {
         clear();
 
@@ -738,7 +740,7 @@ void view_item(context_t *ctx, locker_item_t item[static 1]) {
         int ch = getch();
         if(ch == BACKSPACE_KEY) {
             clear();
-            return;
+            return item_changed;
         } else if(ch == CTRL_X_KEY) {
             switch(item->type) {
                 case LOCKER_ITEM_APIKEY:
@@ -750,6 +752,8 @@ void view_item(context_t *ctx, locker_item_t item[static 1]) {
                 case LOCKER_ITEM_NOTE:
                     break;
             }
+            item_changed = true;
+            save_locker(ctx->locker);
         }
     }
 }
@@ -800,7 +804,11 @@ void item_list_view(context_t *ctx) {
                 locker_array_t_free(items, locker_free_item);
                 return;
             } else if(ch == ENTER_KEY) {
-                view_item(ctx, &items->values[highlight_row*n_cols + highlight_col]);
+                bool item_changed = view_item(ctx, &items->values[highlight_row*n_cols + highlight_col]);
+                if(item_changed) {
+                    /*item list will be recreated */
+                    break;
+                }
             } else if(ch == CTRL_F_KEY) {
                 mvprintw(n_rows+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET-1, PRINTW_DEFAULT_X_OFFSET, "Search: %s", search_query);
                 get_user_str(sizeof(search_query), search_query, n_rows+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET-1, PRINTW_DEFAULT_X_OFFSET+strlen("Search: "), n_rows+PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET, PRINTW_DEFAULT_X_OFFSET, true, true, 0);
