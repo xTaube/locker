@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/syslimits.h>
 #include <unistd.h>
 
 #define LOCKER_MAGIC 0xCA80D4219AB3F102
@@ -32,12 +33,18 @@ generate_locker_filename(const char locker_name[static 1]) {
   return locker_filename;
 }
 
-void write_locker_file(const char locker_name[static 1],
-                       const locker_header_t *header,
-                       const unsigned char encrypted_buffer[static 1]) {
+void write_locker_file(
+    const char locker_dir[static 1],
+    const char locker_name[static 1],
+    const locker_header_t header[static 1],
+    const unsigned char encrypted_buffer[static 1]
+) {
 
   char *locker_filename = generate_locker_filename(locker_name);
-  FILE *f = fopen(locker_filename, "wb");
+  char locker_filepath[PATH_MAX] = {0};
+  snprintf(locker_filepath, PATH_MAX, "%s/lockers/%s", locker_dir, locker_filename);
+
+  FILE *f = fopen(locker_filepath, "wb");
   if (!f) {
     perror("fopen");
     exit(EXIT_FAILURE);
@@ -49,8 +56,11 @@ void write_locker_file(const char locker_name[static 1],
   fclose(f);
 }
 
-locker_result_t locker_create(const char *restrict locker_name,
-                              const char *restrict passphrase) {
+locker_result_t locker_create(
+    const char locker_dir[static 1],
+    const char locker_name[static 1],
+    const char passphrase[static 1]
+) {
   locker_header_t header = {0};
   header.file_version = LOCKER_FILE_VERSION;
   header.magic = LOCKER_MAGIC;
@@ -107,7 +117,7 @@ locker_result_t locker_create(const char *restrict locker_name,
                                              serialized_db, db_size, NULL, 0,
                                              NULL, header.nonce, key);
 
-  write_locker_file(locker_name, &header, encrypted_db);
+  write_locker_file(locker_dir, locker_name, &header, encrypted_db);
 
   free(encrypted_db);
   sqlite3_free(serialized_db);
@@ -176,14 +186,10 @@ read_locker_header(const char filename[static 1]) {
 }
 
 ATTR_ALLOC ATTR_NODISCARD
-array_str_t *lockers_list() {
-  char cwd[PATH_MAX];
-  if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    perror("getcwd");
-    exit(EXIT_FAILURE);
-  }
-
-  array_str_t *locker_files = locker_files_lookup(cwd);
+array_str_t *lockers_list(const char locker_dir[static 1]) {
+  char lockers_path[PATH_MAX] = {0};
+  snprintf(lockers_path, PATH_MAX, "%s/%s", locker_dir, "lockers");
+  array_str_t *locker_files = locker_files_lookup(lockers_path);
 
   if (!locker_files) {
     exit(EXIT_FAILURE);
@@ -198,7 +204,9 @@ array_str_t *lockers_list() {
   }
 
   for (size_t i = 0; i < locker_files->count; i++) {
-    locker_header_t *header = read_locker_header(locker_files->values[i]);
+    char locker_filepath[PATH_MAX] = {0};
+    snprintf(locker_filepath, PATH_MAX, "%s/%s", lockers_path, locker_files->values[i]);
+    locker_header_t *header = read_locker_header(locker_filepath);
     if (!header) {
       continue;
     }
@@ -210,9 +218,12 @@ array_str_t *lockers_list() {
   return lockers;
 }
 
-locker_result_t locker_open(locker_t **locker, const char locker_name[static 1], const char passphrase[static 1]) {
+locker_result_t locker_open(locker_t **locker, const char locker_dir[static 1], const char locker_name[static 1], const char passphrase[static 1]) {
   const char *filename = generate_locker_filename(locker_name);
-  FILE *f = fopen(filename, "rb");
+  char filepath[PATH_MAX] = {0};
+  snprintf(filepath, PATH_MAX, "%s/lockers/%s", locker_dir, filename);
+
+  FILE *f = fopen(filepath, "rb");
   if (!f) {
     perror("fopen");
     return LOCKER_INVALID_LOCKER_FILE;
@@ -294,7 +305,7 @@ locker_result_t locker_open(locker_t **locker, const char locker_name[static 1],
   return LOCKER_OK;
 }
 
-locker_result_t save_locker(locker_t locker[static 1]) {
+locker_result_t save_locker(locker_t locker[static 1], const char locker_dir[static 1]) {
     unsigned char *serialized_db;
     sqlite3_int64 db_size = db_dump(locker->_db, &serialized_db);
 
@@ -318,7 +329,7 @@ locker_result_t save_locker(locker_t locker[static 1]) {
     sodium_memzero(serialized_db, db_size);
     sqlite3_free(serialized_db);
 
-    write_locker_file(locker->locker_name, locker->_header, encrypted_db);
+    write_locker_file(locker_dir, locker->locker_name, locker->_header, encrypted_db);
     free(encrypted_db);
 
     return LOCKER_OK;
