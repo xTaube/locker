@@ -308,6 +308,7 @@ locker_result_t save_locker(locker_t locker[static 1]) {
         malloc(sizeof(unsigned char) *
                (db_size + crypto_aead_xchacha20poly1305_IETF_ABYTES));
 
+    /* XChaCha20-Poly1305 can encrypt at max the file of size 2^64 bytes */
     crypto_aead_xchacha20poly1305_ietf_encrypt(
         encrypted_db, &(locker->_header->locker_size), serialized_db, db_size,
         NULL, 0, NULL, locker->_header->nonce, locker->_key);
