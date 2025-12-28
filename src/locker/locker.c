@@ -6,6 +6,7 @@
 #include "locker_utils.h"
 #include "locker_version.h"
 #include "sodium/crypto_aead_xchacha20poly1305.h"
+#include "sodium/utils.h"
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -313,9 +314,11 @@ locker_result_t save_locker(locker_t locker[static 1]) {
         encrypted_db, &(locker->_header->locker_size), serialized_db, db_size,
         NULL, 0, NULL, locker->_header->nonce, locker->_key);
 
-    write_locker_file(locker->locker_name, locker->_header, encrypted_db);
-
+    /* set memory used for serialized db to 0 to remove it from registers */
+    sodium_memzero(serialized_db, db_size);
     sqlite3_free(serialized_db);
+
+    write_locker_file(locker->locker_name, locker->_header, encrypted_db);
     free(encrypted_db);
 
     return LOCKER_OK;
@@ -407,6 +410,8 @@ locker_result_t locker_add_account(const locker_t locker[static 1], const locker
 
     db_add_item(locker->_db, account->key, account->description, LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN+LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN+LOCKER_ITEM_ACCOUNT_URL_MAX_LEN, (const unsigned char *)content, LOCKER_ITEM_ACCOUNT);
 
+    /* set memory used for content to 0 to remove it from registers */
+    sodium_memzero(content, LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN+LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN+LOCKER_ITEM_ACCOUNT_URL_MAX_LEN);
     free(content);
     return LOCKER_OK;
 }
@@ -446,6 +451,8 @@ locker_result_t locker_update_account(const locker_t locker[static 1], const loc
 
     db_item_update(locker->_db, account->id, account->key, account->description, LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN+LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN+LOCKER_ITEM_ACCOUNT_URL_MAX_LEN, (const unsigned char *)content);
 
+    /* set memory used for content to 0 to remove it from registers */
+    sodium_memzero(content, LOCKER_ITEM_ACCOUNT_USERNAME_MAX_LEN+LOCKER_ITEM_ACCOUNT_PASSWORD_MAX_LEN+LOCKER_ITEM_ACCOUNT_URL_MAX_LEN);
     free(content);
     return LOCKER_OK;
 }
@@ -474,15 +481,26 @@ void locker_free_item(locker_item_t item) {
 void locker_free_apikey(locker_item_apikey_t item[static 1]) {
     free(item->key);
     free(item->description);
+
+    /* set memory used for storing apikey to 0 to remove it from registers */
+    sodium_memzero(item->value, strlen(item->value));
     free(item->value);
+
     free(item);
 }
 
 void locker_free_account(locker_item_account_t item[static 1]) {
     free(item->key);
     free(item->description);
+
+    /* set memory used for storing username to 0 to remove it from registers */
+    sodium_memzero(item->username, strlen(item->username));
     free(item->username);
+
+    /* set memory used for storing password to 0 to remove it from registers */
+    sodium_memzero(item->password, strlen(item->password));
     free(item->password);
+
     free(item->url);
     free(item);
 }

@@ -4,6 +4,7 @@
 #include "locker_logs.h"
 #include "locker_tui_utils.h"
 #include "locker_utils.h"
+#include "sodium/utils.h"
 #include <ncurses.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,6 +42,9 @@ typedef struct {
 void free_apikey_form_rows(apikey_form_t *form) {
     free(form->key);
     free(form->description);
+
+    /* set memory used for storing apikey to 0 to remove it from registers */
+    sodium_memzero(form->value, strlen(form->value));
     free(form->value);
 }
 
@@ -55,7 +59,13 @@ typedef struct {
 void free_account_form_rows(account_form_t *form) {
     free(form->key);
     free(form->description);
+
+    /* set memory used for storing username to 0 to remove it from registers */
+    sodium_memzero(form->username, strlen(form->username));
     free(form->username);
+
+    /* set memory used for storing password to 0 to remove it from registers */
+    sodium_memzero(form->password, strlen(form->password));
     free(form->password);
     free(form->url);
 }

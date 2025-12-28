@@ -6,6 +6,7 @@
 #include "locker_version.h"
 #include "locker_utils.h"
 #include "sqlite3.h"
+#include "sodium.h"
 
 #define LOCKER_NAME_MAX_LEN 64
 #define LOCKER_FILE_EXTENSION ".locker"
