@@ -62,6 +62,46 @@ Locker focuses on strong, modern cryptography while keeping the implementation s
 
 ---
 
+## Suported Platforms
+- Linux(x86_64, aarch64)
+- MacOS(Intel, Apple Silicon)
+
+---
+
+## Installation & Build
+
+Locker is a **source-only release**. Users must compile it locally to ensure security and compatibility.
+
+### Requirements
+
+- C compiler supporting at least **C11** (tested with `gcc >= 10`, `clang >= 12`)
+- GNU Make
+- Standard development environment on Linux or MacOS
+
+> Note: Locker vendors its dependencies (libsodium, SQLite, ncurses) to ensure reproducible builds. No system libraries are required.
+
+### Build Steps
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/xTaube/locker.git
+cd locker
+```
+
+2. Build release version:
+```bash
+make install CC={your compiler} C_VERSION={at lease c11} INSTALL_DIR={location where locker dir will be created}
+```
+
+3. Run Locker:
+```bash
+cd $(INSTALL_DIR)/locker
+./locker
+```
+
+---
+
 ## Project Status
 
 Locker is actively developed and intended for personal and small-scale use.  
