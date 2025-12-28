@@ -5,6 +5,7 @@
 #define ENTER_KEY 10
 #define CTRL_X_KEY 24
 #define CTRL_F_KEY 6
+#define CTRL_D_KEY 4
 
 #define RETURN_OPTION -1
 

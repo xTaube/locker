@@ -454,10 +454,10 @@ array_locker_item_t *locker_get_items(locker_t locker[static 1], const char quer
   return db_list_items(locker->_db, query);
 }
 
-ATTR_ALLOC ATTR_NODISCARD locker_item_apikey_t *locker_get_apikey(const locker_t locker[static 1], long long item_id) {
+ATTR_ALLOC ATTR_NODISCARD locker_item_apikey_t *locker_get_apikey(const locker_t locker[static 1], sqlite_int64 item_id) {
     return db_get_apikey(locker->_db, item_id);
 }
-ATTR_ALLOC ATTR_NODISCARD locker_item_account_t *locker_get_account(const locker_t locker[static 1], long long item_id) {
+ATTR_ALLOC ATTR_NODISCARD locker_item_account_t *locker_get_account(const locker_t locker[static 1], sqlite_int64 item_id) {
     return db_get_account(locker->_db, item_id);
 }
 

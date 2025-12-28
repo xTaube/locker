@@ -38,6 +38,6 @@ void db_item_update(
     const unsigned char content[content_size]
 );
 
-
+void db_item_delete(sqlite3 *db, long long item_id);
 
 #endif

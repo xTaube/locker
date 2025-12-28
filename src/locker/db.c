@@ -303,3 +303,19 @@ void db_item_update(
     rc = sqlite3_finalize(stmt);
     handle_sqlite_rc(db, rc, "SQL finalize error");
 }
+
+
+void db_item_delete(sqlite3 *db, sqlite_int64 item_id) {
+    sqlite3_stmt *stmt;
+    in rc = sqlite3_prepare_v2(
+        db,
+        "DELETE FROM items WHERE id = ?1;",
+        -1, &stmt, NULL,
+    );
+
+    handle_sqlite_rc(db, rc, "SQL prepare error");
+
+    rc = sqlite3_bind_int64(stmt, 1, item_id);
+    handle_sqlite_rc(db, rc, "SQL bind error");
+
+}

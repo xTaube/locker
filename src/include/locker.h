@@ -102,8 +102,8 @@ locker_result_t locker_add_account(const locker_t locker[static 1], const locker
 locker_result_t locker_update_account(const locker_t locker[static 1], const locker_item_account_t account[static 1]);
 
 ATTR_ALLOC ATTR_NODISCARD array_locker_item_t *locker_get_items(locker_t locker[static 1], const char query[LOCKER_ITEM_KEY_MAX_LEN]);
-ATTR_ALLOC ATTR_NODISCARD locker_item_apikey_t *locker_get_apikey(const locker_t locker[static 1], long long item_id);
-ATTR_ALLOC ATTR_NODISCARD locker_item_account_t *locker_get_account(const locker_t locker[static 1], long long item_id);
+ATTR_ALLOC ATTR_NODISCARD locker_item_apikey_t *locker_get_apikey(const locker_t locker[static 1], sqlite_int64 item_id);
+ATTR_ALLOC ATTR_NODISCARD locker_item_account_t *locker_get_account(const locker_t locker[static 1], sqlite_int64 item_id);
 
 void locker_free_item(locker_item_t item);
 void locker_free_apikey(locker_item_apikey_t item[static 1]);

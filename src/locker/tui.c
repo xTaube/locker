@@ -732,7 +732,7 @@ bool view_item(context_t *ctx, locker_item_t item[static 1]) {
                 break;
         }
 
-        const char *control_options[] = {"CTRL-X: Edit", "BACKSPACE: Return"};
+        const char *control_options[] = {"CTRL-X: Edit", "CTRL-D: Delete", "BACKSPACE: Return"};
 
         print_control_panel(sizeof(control_options)/sizeof(char *), control_options, PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET+1, PRINTW_DEFAULT_X_OFFSET, TAB_LEN);
         refresh();
@@ -754,6 +754,9 @@ bool view_item(context_t *ctx, locker_item_t item[static 1]) {
             }
             item_changed = true;
             save_locker(ctx->locker);
+        } else if(ch == CTRL_D_KEY) {
+            clear();
+            return true;
         }
     }
 }
