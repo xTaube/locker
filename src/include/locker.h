@@ -6,6 +6,7 @@
 #include "locker_version.h"
 #include "locker_utils.h"
 #include "sqlite3.h"
+#include "sodium.h"
 
 #define LOCKER_NAME_MAX_LEN 64
 #define LOCKER_FILE_EXTENSION ".locker"
@@ -44,9 +45,10 @@ typedef struct {
   unsigned char salt[LOCKER_CRYPTO_SALT_LEN];
   unsigned char nonce[LOCKER_CRYPTO_NONCE_LEN];
   unsigned long long locker_size;
-  /* technically might be overflowed but since it's only for
-   * one person I guess it would not (the file must be around 17 exabytes huge
-   * to exceed this)*/
+  /*
+   * XChaCha20-Poly1305 can encrypt at max the file of size 2^64 bytes,
+   * it's unlikly that someone has file of size 17 exabytes
+   */
 } locker_header_t;
 
 typedef struct {

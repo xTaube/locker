@@ -134,3 +134,17 @@ int choice_selector(int n_choices, const char *choices[],
     }
   }
 }
+
+void clear_line_inplace(int y, int x) {
+    move(y, x);
+    clrtoeol();
+    refresh();
+}
+
+void clear_lines_inplace(int y_offset, int n_lines) {
+    for(int i=0; i<n_lines; i++) {
+        move(i+y_offset, 0);
+        clrtoeol();
+    }
+    refresh();
+}
