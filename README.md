@@ -97,8 +97,18 @@ make install CC={your compiler} C_VERSION={at lease c11} INSTALL_DIR={location w
 3. Run Locker:
 ```bash
 cd $(INSTALL_DIR)/locker
-./locker
+LOCKER_PATH=$(pwd) ./locker
 ```
+
+### Add Locker to $PATH
+1. Open terminal configuration file e.g. `.zshrc`
+2. Add following:
+```bash
+export LOCKER_PATH=$(INSTALL_DIR)/locker
+export PATH=$LOCKER_PATH/bin:$PATH
+```
+3. Restart terminal.
+4. Now you should be able to open Locker anywhere.
 
 ---
 

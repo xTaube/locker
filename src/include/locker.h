@@ -88,13 +88,16 @@ typedef struct {
     char *url;
 } locker_item_account_t;
 
-locker_result_t locker_create(const char locker_name[static 1],
-                              const char passphrase[static 1]);
+locker_result_t locker_create(
+    const char locker_dir[static 1],
+    const char locker_name[static 1],
+    const char passphrase[static 1]
+);
 
-ATTR_ALLOC ATTR_NODISCARD array_str_t *lockers_list();
+ATTR_ALLOC ATTR_NODISCARD array_str_t *lockers_list(const char locker_dir[static 1]);
 
-locker_result_t locker_open(locker_t **locker, const char locker_name[static 1], const char passphrase[static 1]);
-locker_result_t save_locker(locker_t locker[static 1]);
+locker_result_t locker_open(locker_t **locker, const char locker_dir[static 1], const char locker_name[static 1], const char passphrase[static 1]);
+locker_result_t save_locker(locker_t locker[static 1], const char locker_dir[static 1]);
 locker_result_t close_locker(locker_t locker[static 1]);
 
 locker_result_t locker_add_apikey(const locker_t locker[static 1], const locker_item_apikey_t item[static 1]);
