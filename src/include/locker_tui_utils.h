@@ -25,4 +25,7 @@ void get_user_str(size_t buffer_sz, char buffer[buffer_sz], int win_y, int win_x
 
 int choice_selector(int n_choices, const char *choices[], int row_offset);
 
+void clear_line_inplace(int y, int x);
+void clear_lines_inplace(int y_offset, int n_lines);
+
 #endif

@@ -397,13 +397,17 @@ int apikey_form(apikey_form_t form[static 1], locker_item_apikey_t *apikey, int 
                 clrtoeol();
                 break;
             }
+            /* clear sensitive information in case scrollback is on */
+            clear_lines_inplace(y_offset, n_rows);
             return 0;
         case BACKSPACE_KEY:
+            /* clear sensitive information in case scrollback is on */
+            clear_lines_inplace(y_offset, n_rows);
             return BACKSPACE_KEY;
         case ENTER_KEY:
-        get_user_str(rows_max_len[highlight], rows_content[highlight], highlight + y_offset,
+            get_user_str(rows_max_len[highlight], rows_content[highlight], highlight + y_offset,
                     strlen(rows[highlight]) + 3, n_rows + PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET, x_offset, true, true, A_STANDOUT);
-        break;
+            break;
         }
     }
 }
@@ -471,8 +475,12 @@ int account_form(account_form_t form[static 1], locker_item_account_t *account, 
                 clrtoeol();
                 break;
             }
+            /* clear sensitive data in case scrollback is on */
+            clear_lines_inplace(y_offset, n_rows);
             return 0;
         case BACKSPACE_KEY:
+            /* clear sensitive data in case scrollback is on */
+            clear_lines_inplace(y_offset, n_rows);
             return BACKSPACE_KEY;
         case ENTER_KEY:
         get_user_str(rows_max_len[highlight], rows_content[highlight], highlight + y_offset,
@@ -744,9 +752,14 @@ bool view_item(context_t *ctx, locker_item_t item[static 1]) {
 
         int ch = getch();
         if(ch == BACKSPACE_KEY) {
+            /* clear sensitive information in case scrollback is on */
+            clear_line_inplace(2, 0);
+
             clear();
             return item_changed;
         } else if(ch == CTRL_X_KEY) {
+            /* clear sensitive information in case scrollback is on */
+            clear_line_inplace(2, 0);
             switch(item->type) {
                 case LOCKER_ITEM_APIKEY:
                     edit_apikey_view(ctx, item);
@@ -759,6 +772,9 @@ bool view_item(context_t *ctx, locker_item_t item[static 1]) {
             }
             item_changed = true;
         } else if(ch == CTRL_D_KEY) {
+            /* clear sensitive information in case scrollback is on */
+            clear_line_inplace(2, 0);
+
             clear();
             locker_delete_item(ctx->locker, item);
             return true;
@@ -875,6 +891,11 @@ int run() {
   }
 
   curs_set(1);
+  clear();
+  refresh();
   endwin();
+
+  printf("\033c");
+  fflush(stdout);
   return 0;
 }

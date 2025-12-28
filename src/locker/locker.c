@@ -18,7 +18,7 @@
 ATTR_NODISCARD ATTR_ALLOC char *
 generate_locker_filename(const char locker_name[static 1]) {
   char *locker_filename =
-      malloc(sizeof(char) * (strlen(locker_name) + LOCKER_FILE_EXTENSION_LEN));
+      malloc(sizeof(char) * (strlen(locker_name) + LOCKER_FILE_EXTENSION_LEN+1));
 
   memcpy(locker_filename, locker_name, strlen(locker_name));
   memcpy(locker_filename + strlen(locker_name), LOCKER_FILE_EXTENSION,
