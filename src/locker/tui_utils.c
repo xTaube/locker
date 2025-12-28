@@ -19,7 +19,7 @@ void print_control_panel(size_t n_options, const char *options[], int y_offset, 
 
     for(size_t i = 0; i<n_options; i++) {
         mvprintw(y_offset, x, options[i]);
-        x = strlen(options[i]) + tab_len;
+        x += strlen(options[i]) + tab_len;
     }
 
     clrtoeol();

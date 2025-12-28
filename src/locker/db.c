@@ -157,7 +157,7 @@ array_locker_item_t *db_list_items(sqlite3 *db, const char query[LOCKER_ITEM_KEY
   return items;
 }
 
-ATTR_ALLOC ATTR_NODISCARD locker_item_apikey_t *db_get_apikey(sqlite3 *db, long long item_id) {
+ATTR_ALLOC ATTR_NODISCARD locker_item_apikey_t *db_get_apikey(sqlite3 *db, sqlite_int64 item_id) {
     sqlite3_stmt *stmt;
 
     int rc = sqlite3_prepare_v2(
@@ -199,7 +199,7 @@ ATTR_ALLOC ATTR_NODISCARD locker_item_apikey_t *db_get_apikey(sqlite3 *db, long 
     return apikey;
 }
 
-ATTR_ALLOC ATTR_NODISCARD locker_item_account_t *db_get_account(sqlite3 *db, long long item_id) {
+ATTR_ALLOC ATTR_NODISCARD locker_item_account_t *db_get_account(sqlite3 *db, sqlite_int64 item_id) {
     sqlite3_stmt *stmt;
 
     int rc = sqlite3_prepare_v2(
@@ -244,7 +244,7 @@ ATTR_ALLOC ATTR_NODISCARD locker_item_account_t *db_get_account(sqlite3 *db, lon
     return account;
 }
 
-bool db_item_key_exists(sqlite3 *db, long long item_id, const char key[static 1]) {
+bool db_item_key_exists(sqlite3 *db, sqlite_int64 item_id, const char key[static 1]) {
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(
@@ -272,7 +272,7 @@ bool db_item_key_exists(sqlite3 *db, long long item_id, const char key[static 1]
 
 void db_item_update(
     sqlite3 *db,
-    long long item_id,
+    sqlite_int64 item_id,
     const char key[static 1],
     const char description[static 1],
     const int content_size,
@@ -307,15 +307,16 @@ void db_item_update(
 
 void db_item_delete(sqlite3 *db, sqlite_int64 item_id) {
     sqlite3_stmt *stmt;
-    in rc = sqlite3_prepare_v2(
-        db,
-        "DELETE FROM items WHERE id = ?1;",
-        -1, &stmt, NULL,
-    );
+    int rc = sqlite3_prepare_v2(db, "DELETE FROM items WHERE id = ?1;",-1,&stmt,NULL);
 
     handle_sqlite_rc(db, rc, "SQL prepare error");
 
     rc = sqlite3_bind_int64(stmt, 1, item_id);
     handle_sqlite_rc(db, rc, "SQL bind error");
 
+    rc = sqlite3_step(stmt);
+    handle_sqlite_rc(db, rc, "SQL step error");
+
+    rc = sqlite3_finalize(stmt);
+    handle_sqlite_rc(db, rc, "SQL finalize_error");
 }

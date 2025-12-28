@@ -449,6 +449,11 @@ locker_result_t locker_update_account(const locker_t locker[static 1], const loc
     return LOCKER_OK;
 }
 
+locker_result_t locker_delete_item(const locker_t locker[static 1], const locker_item_t item[static 1]) {
+    db_item_delete(locker->_db, item->id);
+    return LOCKER_OK;
+}
+
 ATTR_ALLOC ATTR_NODISCARD
 array_locker_item_t *locker_get_items(locker_t locker[static 1], const char query[LOCKER_ITEM_KEY_MAX_LEN]) {
   return db_list_items(locker->_db, query);

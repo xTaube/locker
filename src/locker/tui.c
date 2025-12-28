@@ -520,10 +520,6 @@ void edit_apikey_view(context_t *ctx, locker_item_t item[static 1]) {
         rc = locker_update_apikey(ctx->locker, apikey);
     } while(rc != LOCKER_OK);
 
-    /* so key is updated on list without fetching the full list again */
-    free(item->key);
-    item->key = strdup(form.key);
-
     locker_free_apikey(apikey);
 }
 
@@ -589,10 +585,6 @@ void edit_account_view(context_t *ctx, locker_item_t item[static 1]) {
             clrtoeol();
         }
     } while(rc != LOCKER_OK);
-
-    /* so key is updated on list without fetching the full list again */
-    free(item->key);
-    item->key = strdup(form.key);
 
     locker_free_account(account);
 }
@@ -732,7 +724,7 @@ bool view_item(context_t *ctx, locker_item_t item[static 1]) {
                 break;
         }
 
-        const char *control_options[] = {"CTRL-X: Edit", "CTRL-D: Delete", "BACKSPACE: Return"};
+        const char *control_options[] = {"CTRL-X: Edit", "CTRL-D: Remove", "BACKSPACE: Return"};
 
         print_control_panel(sizeof(control_options)/sizeof(char *), control_options, PRINTW_CONTROL_PANEL_DEFAULT_Y_OFFSET+1, PRINTW_DEFAULT_X_OFFSET, TAB_LEN);
         refresh();
@@ -753,9 +745,9 @@ bool view_item(context_t *ctx, locker_item_t item[static 1]) {
                     break;
             }
             item_changed = true;
-            save_locker(ctx->locker);
         } else if(ch == CTRL_D_KEY) {
             clear();
+            locker_delete_item(ctx->locker, item);
             return true;
         }
     }
@@ -810,6 +802,7 @@ void item_list_view(context_t *ctx) {
                 bool item_changed = view_item(ctx, &items->values[highlight_row*n_cols + highlight_col]);
                 if(item_changed) {
                     /*item list will be recreated */
+                    save_locker(ctx->locker);
                     break;
                 }
             } else if(ch == CTRL_F_KEY) {

@@ -63,7 +63,7 @@ typedef enum {
 } locker_item_type_t;
 
 typedef struct {
-    long long id;
+    sqlite_int64 id;
     char *key;
     locker_item_type_t type;
 } locker_item_t;
@@ -71,14 +71,14 @@ typedef struct {
 DEFINE_LOCKER_ARRAY_T(locker_item_t, locker_item);
 
 typedef struct {
-    long long id;
+    sqlite_int64 id;
     char *key;
     char *description;
     char *apikey;
 } locker_item_apikey_t;
 
 typedef struct {
-    long long id;
+    sqlite_int64 id;
     char *key;
     char *description;
     char *username;
@@ -100,6 +100,8 @@ locker_result_t locker_update_apikey(const locker_t locker[static 1], const lock
 
 locker_result_t locker_add_account(const locker_t locker[static 1], const locker_item_account_t account[static 1]);
 locker_result_t locker_update_account(const locker_t locker[static 1], const locker_item_account_t account[static 1]);
+
+locker_result_t locker_delete_item(const locker_t locker[static 1], const locker_item_t item[static 1]);
 
 ATTR_ALLOC ATTR_NODISCARD array_locker_item_t *locker_get_items(locker_t locker[static 1], const char query[LOCKER_ITEM_KEY_MAX_LEN]);
 ATTR_ALLOC ATTR_NODISCARD locker_item_apikey_t *locker_get_apikey(const locker_t locker[static 1], sqlite_int64 item_id);

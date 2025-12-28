@@ -24,20 +24,20 @@ void db_add_item(sqlite3 *db, const char key[static 1],
                  locker_item_type_t item_type);
 
 ATTR_ALLOC ATTR_NODISCARD array_locker_item_t *db_list_items(sqlite3 *db, const char query[LOCKER_ITEM_KEY_QUERY_MAX_LEN]);
-ATTR_ALLOC ATTR_NODISCARD locker_item_apikey_t *db_get_apikey(sqlite3 *db, long long item_id);
-ATTR_ALLOC ATTR_NODISCARD locker_item_account_t *db_get_account(sqlite3 *db, long long item_id);
+ATTR_ALLOC ATTR_NODISCARD locker_item_apikey_t *db_get_apikey(sqlite3 *db, sqlite_int64 item_id);
+ATTR_ALLOC ATTR_NODISCARD locker_item_account_t *db_get_account(sqlite3 *db, sqlite_int64 item_id);
 
-bool db_item_key_exists(sqlite3 *db, long long item_id, const char key[static 1]);
+bool db_item_key_exists(sqlite3 *db, sqlite_int64 item_id, const char key[static 1]);
 
 void db_item_update(
     sqlite3 *db,
-    long long item_id,
+    sqlite_int64 item_id,
     const char key[static 1],
     const char description[static 1],
     const int content_size,
     const unsigned char content[content_size]
 );
 
-void db_item_delete(sqlite3 *db, long long item_id);
+void db_item_delete(sqlite3 *db, sqlite_int64 item_id);
 
 #endif
