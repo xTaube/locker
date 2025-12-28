@@ -7,8 +7,11 @@
 #include "locker_version.h"
 #include "sodium/utils.h"
 #include <ncurses.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/syslimits.h>
+#include <unistd.h>
 
 #define MAX(A,B) ((A)>(B)?(A):(B))
 #define MIN(A,B) ((A)<(B)?(A):(B))
@@ -31,6 +34,7 @@ typedef struct {
 typedef struct {
   window_size_t win_size;
   view_t view;
+  char *workdir;
   locker_t *locker;
 } context_t;
 
@@ -104,7 +108,7 @@ void locker_list_view(context_t *ctx) {
   mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Lockers list");
   attroff(A_BOLD);
 
-  array_str_t *lockers = lockers_list();
+  array_str_t *lockers = lockers_list(ctx->workdir);
 
   if (lockers->count == 0) {
     /* no allocations if lockers->count == 0 */
@@ -135,7 +139,7 @@ void locker_list_view(context_t *ctx) {
     refresh();
     getnstr(passphrase, sizeof(passphrase) - 1);
 
-    locker_result_t rc = locker_open(&(ctx->locker), lockers->values[locker], passphrase);
+    locker_result_t rc = locker_open(&(ctx->locker), ctx->workdir, lockers->values[locker], passphrase);
     if (rc == LOCKER_OK) {
         ctx->view = VIEW_LOCKER;
         return;
@@ -274,7 +278,7 @@ void new_locker_view(context_t *ctx) {
         }
   }
 
-    locker_result_t rc = locker_create(rows_content[0], rows_content[1]);
+    locker_result_t rc = locker_create(ctx->workdir, rows_content[0], rows_content[1]);
 
     if(rc == LOCKER_NAME_FORBIDDEN_CHAR) {
         mvprintw(n_rows+3, PRINTW_DEFAULT_X_OFFSET, "Locker name can only contain alphanumeric characers.");
@@ -641,7 +645,7 @@ void add_item_view(context_t *ctx) {
             break;
     }
 
-    save_locker(ctx->locker);
+    save_locker(ctx->locker, ctx->workdir);
 }
 
 const char *get_item_type_str(locker_item_type_t type) {
@@ -832,7 +836,7 @@ void item_list_view(context_t *ctx) {
                 bool item_changed = view_item(ctx, &items->values[highlight_row*n_cols + highlight_col]);
                 if(item_changed) {
                     /*item list will be recreated */
-                    save_locker(ctx->locker);
+                    save_locker(ctx->locker, ctx->workdir);
                     break;
                 }
             } else if(ch == CTRL_F_KEY) {
@@ -855,48 +859,53 @@ void item_list_view(context_t *ctx) {
 }
 
 int run() {
-  initscr();
-  turn_off_user_typing();
-  keypad(stdscr, true);
-
-  context_t context = {.win_size = {0, 0}, .view = VIEW_STARTUP, .locker = NULL};
-  getmaxyx(stdscr, context.win_size.rows, context.win_size.cols);
-
-  curs_set(0);
-
-  bool running = true;
-  while (running) {
-    switch (context.view) {
-    case VIEW_STARTUP:
-      startup_view(&context);
-      break;
-    case VIEW_LOCKER:
-      locker_view(&context);
-      break;
-    case VIEW_NEW_LOCKER:
-      new_locker_view(&context);
-      break;
-    case VIEW_LOCKER_LIST:
-      locker_list_view(&context);
-      break;
-    case VIEW_ADD_ITEM:
-      add_item_view(&context);
-      break;
-    case VIEW_ITEM_LIST:
-      item_list_view(&context);
-      break;
-    case VIEW_EXIT:
-      running = false;
-      break;
+    char *path = getenv("LOCKER_PATH");
+    if(!path) {
+        printf("$LOCKER_PATH environment variable is missing.\n");
+        exit(EXIT_FAILURE);
     }
-  }
+    turn_on_logging(path);
 
-  curs_set(1);
-  clear();
-  refresh();
-  endwin();
+    initscr();
+    turn_off_user_typing();
+    keypad(stdscr, true);
 
-  printf("\033c");
-  fflush(stdout);
-  return 0;
+    context_t context = {.win_size = {0, 0}, .view = VIEW_STARTUP, .workdir=path, .locker = NULL};
+
+    getmaxyx(stdscr, context.win_size.rows, context.win_size.cols);
+
+    curs_set(0);
+
+    bool running = true;
+    while (running) {
+        switch (context.view) {
+           case VIEW_STARTUP:
+           startup_view(&context);
+           break;
+        case VIEW_LOCKER:
+            locker_view(&context);
+            break;
+        case VIEW_NEW_LOCKER:
+            new_locker_view(&context);
+            break;
+        case VIEW_LOCKER_LIST:
+            locker_list_view(&context);
+            break;
+        case VIEW_ADD_ITEM:
+            add_item_view(&context);
+            break;
+        case VIEW_ITEM_LIST:
+            item_list_view(&context);
+            break;
+        case VIEW_EXIT:
+            running = false;
+            break;
+        }
+    }
+
+    curs_set(1);
+    clear();
+    refresh();
+    endwin();
+    return 0;
 }

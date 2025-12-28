@@ -9,7 +9,7 @@ BIN = bin
 EXEC = $(BIN)/locker
 DEBUG_EXEC = $(BIN)/locker-debug
 SRC = src/locker
-
+DEVELOPMENT_DIR = development
 
 $(BIN):
 	@mkdir -p $(BIN)
@@ -17,16 +17,24 @@ $(BIN):
 $(DEBUG_EXEC): $(BIN) $(SRC)
 	$(CC) $(DEBUG_CFLAGS) -o $(DEBUG_EXEC) $(SRC)/*.c $(LDFLAGS)
 
+$(DEVELOPMENT_DIR):
+	@mkdir -p $(DEVELOPMENT_DIR)
+	@mkdir -p $(DEVELOPMENT_DIR)/lockers
+
 .PHONY: install
 install:
 	$(CC) $(INSTALL_CFLAGS) -o $(EXEC) $(SRC)/*.c $(LDFLAGS)
 	mkdir -p $(INSTALL_DIR)/locker
-	cp $(EXEC) $(INSTALL_DIR)/locker
+
+	mkdir -p $(INSTALL_DIR)/locker/bin
+	cp $(EXEC) $(INSTALL_DIR)/locker/bin
+
+	mkdir -p $(INSTALL_DIR)/locker/lockers
 
 .PHONY: debug
-debug: $(DEBUG_EXEC)
-	./$(DEBUG_EXEC)
+debug: $(DEVELOPMENT_DIR) $(DEBUG_EXEC)
+	LOCKER_PATH=$(DEVELOPMENT_DIR) ./$(DEBUG_EXEC)
 
 .PHONY: clean
 clean:
-	@rm -rf $(BIN)
+	@rm -rf $(BIN)/*
