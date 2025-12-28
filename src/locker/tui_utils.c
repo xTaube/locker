@@ -136,7 +136,7 @@ int choice_selector(int n_choices, const char *choices[],
 }
 
 void clear_line_inplace(int y, int x) {
-    move(y, 0);
+    move(y, x);
     clrtoeol();
     refresh();
 }

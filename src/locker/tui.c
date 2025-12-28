@@ -4,6 +4,7 @@
 #include "locker_logs.h"
 #include "locker_tui_utils.h"
 #include "locker_utils.h"
+#include "locker_version.h"
 #include "sodium/utils.h"
 #include <ncurses.h>
 #include <stdlib.h>
@@ -74,7 +75,7 @@ void startup_view(context_t *ctx) {
   clear();
 
   attron(A_BOLD);
-  mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Locker");
+  mvprintw(1, PRINTW_DEFAULT_X_OFFSET, "Locker v%s", CURRENT_VERSION);
   attroff(A_BOLD);
 
   const char *choices[] = {
