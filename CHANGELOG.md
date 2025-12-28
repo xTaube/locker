@@ -8,6 +8,16 @@ This project follows **Semantic Versioning**
 
 ---
 
+## [0.1.1] - 2025-12-28
+
+### Added
+- Added to README.md how to add Locker to `PATH`
+
+### Fixed
+- Fixed Locker workdir paths
+
+---
+
 ## [0.1.0] - 2025-12-28
 
 ### Added
