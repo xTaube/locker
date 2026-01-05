@@ -91,7 +91,7 @@ cd locker
 
 2. Build release version:
 ```bash
-make install CC={your compiler} C_VERSION={at lease c11} INSTALL_DIR={location where locker dir will be created}
+make install CC={your compiler} C_VERSION={at least c11} INSTALL_DIR={location where locker dir will be created}
 ```
 
 3. Run Locker:

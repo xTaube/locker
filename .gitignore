@@ -22,11 +22,24 @@
 *.la
 *.lo
 
+# --- Exceptions ---
+!src/
+!src/libsodium/
+!src/ncurses/
+
+!/src/ncurses/**/*.a
+!/src/ncurses/**/*.la
+!/src/libsodium/**/*.a
+!/src/libsodium/**/*.la
+
 # Shared objects (inc. Windows DLLs)
 *.dll
 *.so
 *.so.*
 *.dylib
+
+!/src/ncurses/**/*.dylib
+!/src/libsodium/**/*.dylib
 
 # Executables
 *.exe
