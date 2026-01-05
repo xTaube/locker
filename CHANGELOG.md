@@ -7,6 +7,10 @@ This project follows **Semantic Versioning**
 **Keep a Changelog** (https://keepachangelog.com/).
 
 ---
+## [0.1.2] - 2026-01-05
+
+### Fixed
+- Added pre-compiled files to project so install is possible
 
 ## [0.1.1] - 2025-12-28
 
@@ -15,8 +19,6 @@ This project follows **Semantic Versioning**
 
 ### Fixed
 - Fixed Locker workdir paths
-
----
 
 ## [0.1.0] - 2025-12-28
 
