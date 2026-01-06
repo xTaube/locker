@@ -45,7 +45,7 @@ void initdb(sqlite3 *db) {
   log_message("Database bootstrap succeed.");
 }
 
-ATTR_NODISCARD ATTR_ALLOC sqlite3 *get_empty_db() {
+ATTR_NODISCARD ATTR_ALLOC sqlite3 *get_empty_db(void) {
   sqlite3 *db;
 
   if (sqlite3_open(":memory:", &db) != SQLITE_OK) {

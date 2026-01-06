@@ -7,7 +7,7 @@
 #include "sqlite3.h"
 #include <stdbool.h>
 
-ATTR_NODISCARD ATTR_ALLOC sqlite3 *get_empty_db();
+ATTR_NODISCARD ATTR_ALLOC sqlite3 *get_empty_db(void);
 
 ATTR_NODISCARD ATTR_ALLOC sqlite3 *get_db(sqlite3_int64 size,
                                           unsigned char buffer[size]);

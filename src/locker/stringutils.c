@@ -23,4 +23,4 @@ bool str_alphnum(const char *s) {
     s++;
   }
   return true;
-};
+}

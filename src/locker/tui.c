@@ -1,12 +1,11 @@
 #include "attrs.h"
-#include "curses.h"
 #include "locker.h"
 #include "locker_logs.h"
 #include "locker_tui_utils.h"
 #include "locker_utils.h"
 #include "locker_version.h"
 #include "sodium/utils.h"
-#include <ncurses.h>
+#include "ncursesw/ncurses.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -214,7 +213,7 @@ void new_locker_view(context_t *ctx) {
         if (i == highlight)
             attron(A_STANDOUT);
         if (i > 0)
-            mvprintw(i + 2, PRINTW_DEFAULT_X_OFFSET, rows[i]);
+            mvprintw(i + 2, PRINTW_DEFAULT_X_OFFSET, "%s", rows[i]);
         else
             mvprintw(i + 2, PRINTW_DEFAULT_X_OFFSET, "%s %s", rows[i], rows_content[i]);
         if (i == highlight)
@@ -668,21 +667,21 @@ void print_apikey(context_t *ctx, const locker_item_t *item) {
     mvprintw(1, x_offset, "Key");
     attroff(A_BOLD);
 
-    mvprintw(2, x_offset, apikey->key);
+    mvprintw(2, x_offset, "%s", apikey->key);
     x_offset += MAX(strlen(apikey->key), strlen("Key")) + TAB_LEN;
 
     attron(A_BOLD);
     mvprintw(1, x_offset, "Description");
     attroff(A_BOLD);
 
-    mvprintw(2, x_offset, apikey->description);
+    mvprintw(2, x_offset, "%s", apikey->description);
     x_offset += MAX(strlen(apikey->description), strlen("Description"))+ TAB_LEN;
 
     attron(A_BOLD);
     mvprintw(1, x_offset, "Value");
     attroff(A_BOLD);
 
-    mvprintw(2, x_offset, apikey->value);
+    mvprintw(2, x_offset, "%s", apikey->value);
 
     locker_free_apikey(apikey);
 }
@@ -696,21 +695,21 @@ void print_account(context_t *ctx, const locker_item_t *item) {
     mvprintw(1, x_offset, "Key");
     attroff(A_BOLD);
 
-    mvprintw(2, x_offset, account->key);
+    mvprintw(2, x_offset, "%s", account->key);
     x_offset += MAX(strlen(account->key), strlen("Key")) + TAB_LEN;
 
     attron(A_BOLD);
     mvprintw(1, x_offset, "Description");
     attroff(A_BOLD);
 
-    mvprintw(2, x_offset, account->description);
+    mvprintw(2, x_offset, "%s", account->description);
     x_offset += MAX(strlen(account->description), strlen("Description"))+ TAB_LEN;
 
     attron(A_BOLD);
     mvprintw(1, x_offset, "Username");
     attroff(A_BOLD);
 
-    mvprintw(2, x_offset, account->username);
+    mvprintw(2, x_offset, "%s", account->username);
 
     x_offset += MAX(strlen(account->username), strlen("Username")) + TAB_LEN;
 
@@ -718,7 +717,7 @@ void print_account(context_t *ctx, const locker_item_t *item) {
     mvprintw(1, x_offset, "Password");
     attroff(A_BOLD);
 
-    mvprintw(2, x_offset, account->password);
+    mvprintw(2, x_offset, "%s", account->password);
 
     x_offset += MAX(strlen(account->password), strlen("Password")) + TAB_LEN;
 
@@ -726,7 +725,7 @@ void print_account(context_t *ctx, const locker_item_t *item) {
     mvprintw(1, x_offset, "URL");
     attroff(A_BOLD);
 
-    mvprintw(2, x_offset, account->url);
+    mvprintw(2, x_offset, "%s", account->url);
 
     locker_free_account(account);
 }
@@ -821,7 +820,7 @@ void item_list_view(context_t *ctx) {
             for(size_t i = 0; i<n_rows; i++) {
                 for(size_t j = 0; i*n_cols+j < items->count && j<n_cols; j++) {
                     if(highlight_row == i && highlight_col == j) attron(A_STANDOUT);
-                    mvprintw(2+i, PRINTW_DEFAULT_X_OFFSET+j*(TAB_LEN+key_max_len), items->values[i*n_cols+j].key);
+                    mvprintw(2+i, PRINTW_DEFAULT_X_OFFSET+j*(TAB_LEN+key_max_len),  "%s", items->values[i*n_cols+j].key);
                     if(highlight_row == i && highlight_col == j) attroff(A_STANDOUT);
                 }
             }
@@ -858,7 +857,7 @@ void item_list_view(context_t *ctx) {
     }
 }
 
-int run() {
+int run(void) {
     char *path = getenv("LOCKER_PATH");
     if(!path) {
         printf("$LOCKER_PATH environment variable is missing.\n");
