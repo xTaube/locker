@@ -74,8 +74,9 @@ Locker is a **source-only release**. Users must compile it locally to ensure sec
 
 ### Requirements
 
-- C compiler supporting at least **C11** (tested with `gcc >= 10`, `clang >= 12`)
+- C compiler (tested with `gcc >= 10`, `clang >= 12`)
 - GNU Make
+- CMake > 3.21
 - Standard development environment on Linux or MacOS
 
 > Note: Locker vendors its dependencies (libsodium, SQLite, ncurses) to ensure reproducible builds. No system libraries are required.
@@ -91,7 +92,7 @@ cd locker
 
 2. Build release version:
 ```bash
-make install CC={your compiler} C_VERSION={at least c11} INSTALL_DIR={location where locker dir will be created}
+make install INSTALL_DIR={YOUR_DIR_OF_CHOICE}
 ```
 
 3. Run Locker:

@@ -1,40 +1,49 @@
-CC ?= gcc
-C_VERSION ?= c11
-LDFLAGS = -Lsrc/lib -lsqlite3 -Lsrc/libsodium/lib -lsodium -Lsrc/ncurses/lib -ltinfow -lncursesw
-DEBUG_CFLAGS = -O0 -fsanitize=undefined,address -g -std=$(C_VERSION) -Wall -Wextra -Werror -Isrc/include -Isrc/libsodium/include -Isrc/ncurses/include
+BUILD=build
+BUILD_DEBUGGER=$(BUILD)/Debugger
+LOCKER_PROGRAM_DEBUG=$(BUILD_DEBUGGER)/src/locker
 
-INSTALL_CFLAGS = -O2 -std=$(C_VERSION) -Isrc/include -Isrc/libsodium/include -Isrc/ncurses/include
+BUILD_DEVELOPMENT=$(BUILD)/Development
+LOCKER_PROGRAM_DEV=$(BUILD_DEVELOPMENT)/src/locker
 
-BIN = bin
-EXEC = $(BIN)/locker
-DEBUG_EXEC = $(BIN)/locker-debug
-SRC = src/locker
-DEVELOPMENT_DIR = development
+BUILD_RELEASE=$(BUILD)/Release
+LOCKER_PROGRAM_RELEASE=$(BUILD_RELEASE)/src/locker
 
-$(BIN):
-	@mkdir -p $(BIN)
+SRC=src
 
-$(DEBUG_EXEC): $(BIN) $(SRC)
-	$(CC) $(DEBUG_CFLAGS) -o $(DEBUG_EXEC) $(SRC)/*.c $(LDFLAGS)
+PROJECT_CMAKE=CMakeLists.txt
+LOCKER_CMAKE=$(SRC)/CMakeLists.txt
 
-$(DEVELOPMENT_DIR):
-	@mkdir -p $(DEVELOPMENT_DIR)
-	@mkdir -p $(DEVELOPMENT_DIR)/lockers
+MAKE=cmake --build
+
+$(BUILD_DEVELOPMENT): $(PROJECT_CMAKE) $(LOCKER_CMAKE)
+	cmake -S . -B $(BUILD_DEVELOPMENT) -DCMAKE_BUILD_TYPE=Development
+
+$(BUILD_DEBUGGER): $(PROJECT_CMAKE) $(LOCKER_CMAKE)
+	cmake -S . -B $(BUILD_DEBUGGER) -DCMAKE_BUILD_TYPE=Debugger
+
+$(BUILD_RELEASE): $(PROJECT_CMAKE) $(LOCKER_CMAKE)
+	cmake -S . -B $(BUILD_RELEASE) -DCMAKE_BUILD_TYPE=Release
+
+$(LOCKER_PROGRAM_DEV): $(BUILD_DEVELOPMENT) $(SRC)
+	$(MAKE) $(BUILD_DEVELOPMENT)
+
+$(LOCKER_PROGRAM_RELEASE): $(BUILD_RELEASE) $(SRC)
+	$(MAKE) $(BUILD_RELEASE)
+
+$(LOCKER_PROGRAM_DEBUG): $(BUILD_DEBUGGER) $(SRC)
+	$(MAKE) $(BUILD_DEBUGGER)
+
+.PHONY: run
+run: $(LOCKER_PROGRAM_DEV)
+	LOCKER_PATH=development $(BUILD_DEVELOPMENT)/src/locker
 
 .PHONY: install
-install:
-	$(CC) $(INSTALL_CFLAGS) -o $(EXEC) $(SRC)/*.c $(LDFLAGS)
+install: $(LOCKER_PROGRAM_RELEASE)
 	mkdir -p $(INSTALL_DIR)/locker
-
 	mkdir -p $(INSTALL_DIR)/locker/bin
-	cp $(EXEC) $(INSTALL_DIR)/locker/bin
-
 	mkdir -p $(INSTALL_DIR)/locker/lockers
-
-.PHONY: debug
-debug: $(DEVELOPMENT_DIR) $(DEBUG_EXEC)
-	LOCKER_PATH=$(DEVELOPMENT_DIR) ./$(DEBUG_EXEC)
+	cp $(LOCKER_PROGRAM_RELEASE) $(INSTALL_DIR)/locker/bin
 
 .PHONY: clean
 clean:
-	@rm -rf $(BIN)/*
+	@rm -rf $(BUILD)/*

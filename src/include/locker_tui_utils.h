@@ -14,10 +14,11 @@
 #define PRINTW_DEFAULT_X_OFFSET 2
 
 #include <stddef.h>
+#include <stdbool.h>
 
-void turn_off_user_typing();
+void turn_off_user_typing(void);
 
-void turn_on_user_typing();
+void turn_on_user_typing(void);
 
 void print_control_panel(size_t n_options, const char *options[], int y_offset, int x_offset, int tab_len);
 

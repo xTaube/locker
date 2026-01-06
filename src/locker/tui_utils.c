@@ -1,13 +1,13 @@
 #include <string.h>
-#include <ncurses.h>
+#include <ncursesw/ncurses.h>
 #include "locker_tui_utils.h"
 
-void turn_off_user_typing() {
+void turn_off_user_typing(void) {
   noecho();
   cbreak();
 }
 
-void turn_on_user_typing() {
+void turn_on_user_typing(void) {
   echo();
   nocbreak();
 }
@@ -18,7 +18,7 @@ void print_control_panel(size_t n_options, const char *options[], int y_offset, 
     int x = x_offset;
 
     for(size_t i = 0; i<n_options; i++) {
-        mvprintw(y_offset, x, options[i]);
+        mvprintw(y_offset, x, "%s", options[i]);
         x += strlen(options[i]) + tab_len;
     }
 
@@ -95,7 +95,7 @@ void get_user_str(size_t buffer_sz, char buffer[buffer_sz], int win_y,
     }
 
     if(typing)
-        mvprintw(win_y, win_x, buffer);
+        mvprintw(win_y, win_x, "%s", buffer);
 
     clrtoeol();
     refresh();
