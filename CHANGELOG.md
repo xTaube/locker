@@ -7,6 +7,11 @@ This project follows **Semantic Versioning**
 **Keep a Changelog** (https://keepachangelog.com/).
 
 ---
+## [0.2.0] - 2026-01-07
+
+### Added
+- CMake-based build system supporting development builds and install/release workflows
+
 ## [0.1.2] - 2026-01-05
 
 ### Fixed
