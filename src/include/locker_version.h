@@ -1,7 +1,7 @@
 #ifndef LOCKER_VERSION_H
 #define LOCKER_VERSION_H
 
-#define CURRENT_VERSION "0.1.2"
+#define CURRENT_VERSION "0.2.0"
 #define LOCKER_FILE_VERSION 1
 
 #endif
