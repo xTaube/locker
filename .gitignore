@@ -58,6 +58,7 @@ dkms.conf
 # ZED IDE
 .zed
 .clangd
+.DS_Store
 
 # logs
 *.log
